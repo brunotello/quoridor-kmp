@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_title">Quoridor</string>
+    <string name="config_subtitle">Configura una partida local</string>
+    <string name="players">Jugadores</string>
+    <string name="players_option">%1$d jugadores</string>
+    <string name="board_summary">Tablero 9x9 • %1$d jugadores</string>
+    <string name="start_game">Iniciar partida</string>
+    <string name="game_over">Partida finalizada</string>
+    <string name="winner">Ganador: Jugador %1$d</string>
+    <string name="new_game">Nueva partida</string>
+    <string name="player_name">Jugador %1$d</string>
+    <string name="pawn_label">%1$d</string>
+    <string name="feedback_no_walls_remaining">No quedan muros disponibles.</string>
+    <string name="feedback_no_legal_walls">No hay ubicaciones legales para colocar muros.</string>
+    <string name="feedback_invalid_wall">Ese muro no es válido.</string>
+    <string name="feedback_invalid_move">Jugada inválida</string>
+</resources>
