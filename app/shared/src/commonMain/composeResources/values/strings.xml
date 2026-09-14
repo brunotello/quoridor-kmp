@@ -14,4 +14,46 @@
     <string name="feedback_no_legal_walls">No hay ubicaciones legales para colocar muros.</string>
     <string name="feedback_invalid_wall">Ese muro no es válido.</string>
     <string name="feedback_invalid_move">Jugada inválida</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_game">Juego</string>
+    <string name="nav_rules">Reglas</string>
+    <string name="nav_settings">Ajustes</string>
+
+    <!-- Nueva partida -->
+    <string name="new_game_overline">SELECCIONA MODO</string>
+    <string name="new_game_headline">¿Cómo quieres jugar?</string>
+    <string name="game_mode_pvp">1 vs 1</string>
+    <string name="game_mode_pvp_description">Compartan un dispositivo y jueguen por turnos. Ideal para partidas presenciales cara a cara.</string>
+    <string name="game_mode_pvai">vs IA</string>
+    <string name="game_mode_pvai_description">Desafía a nuestra IA en distintos niveles de dificultad y pon a prueba tu dominio de los muros.</string>
+    <string name="coming_soon">Próximamente</string>
+
+    <!-- Reglas -->
+    <string name="rules_title">Reglas del juego</string>
+    <string name="rules_objective_title">Objetivo</string>
+    <string name="rules_objective_body">Sé el primero en llevar tu peón hasta la fila del lado opuesto del tablero.</string>
+    <string name="rules_movement_title">Movimiento</string>
+    <string name="rules_movement_body">En tu turno mueves tu peón una casilla en horizontal o vertical. No se permite moverse en diagonal, salvo al saltar sobre un peón adyacente.</string>
+    <string name="rules_jumps_title">Saltos</string>
+    <string name="rules_jumps_body">Si un peón rival está en una casilla adyacente, puedes saltarlo y ocupar la casilla siguiente. Si detrás del rival hay un muro o el borde, puedes moverte en diagonal.</string>
+    <string name="rules_walls_title">Muros</string>
+    <string name="rules_walls_body">En lugar de mover, puedes colocar uno de tus muros para bloquear el paso. Cada muro ocupa dos casillas y nunca puede dejar a un jugador sin ningún camino hacia su meta.</string>
+    <string name="rules_walls_count_title">Muros disponibles</string>
+    <string name="rules_walls_count_body">En una partida de 2 jugadores cada uno dispone de 10 muros; en una de 4 jugadores, 5 muros cada uno.</string>
+    <string name="rules_winning_title">Cómo ganar</string>
+    <string name="rules_winning_body">Ganas al alcanzar cualquier casilla de la fila (o columna) opuesta a tu posición inicial.</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_description">Elegí entre modo claro y oscuro.</string>
+    <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_about">Acerca de</string>
+    <string name="about_author">Bruno Tello</string>
+    <string name="about_author_role">Desarrollador de Quoridor</string>
+    <string name="about_github">GitHub</string>
+    <string name="about_linkedin">LinkedIn</string>
+    <string name="about_github_url">https://github.com/brunotello</string>
+    <string name="about_linkedin_url">https://www.linkedin.com/in/brunotello/</string>
 </resources>

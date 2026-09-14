@@ -2,6 +2,7 @@ package com.btello.quoridor.presentation.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
@@ -17,14 +18,27 @@ internal object QuoridorTheme {
         get() = LocalBoardColors.current
 }
 
+private val QuoridorDarkColorScheme = darkColorScheme(
+    primary = blue_100,
+    secondary = pink_500,
+)
+
+private val QuoridorLightColorScheme = lightColorScheme(
+    primary = blue_100,
+    secondary = pink_500,
+)
+
 /**
- * Tema raíz de la app: Material 3 (esquema oscuro) + tipografía y colores propios.
+ * Tema raíz de la app: Material 3 (claro u oscuro) + tipografía y colores propios.
  */
 @Composable
-internal fun QuoridorTheme(content: @Composable () -> Unit) {
+internal fun QuoridorTheme(
+    darkTheme: Boolean = true,
+    content: @Composable () -> Unit,
+) {
     CompositionLocalProvider(LocalBoardColors provides DefaultBoardColors) {
         MaterialTheme(
-            colorScheme = darkColorScheme(),
+            colorScheme = if (darkTheme) QuoridorDarkColorScheme else QuoridorLightColorScheme,
             typography = QuoridorTypography,
             content = content,
         )
