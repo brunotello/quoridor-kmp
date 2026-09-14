@@ -12,19 +12,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,51 +29,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
-import quoridor.app.shared.generated.resources.coming_soon
-import quoridor.app.shared.generated.resources.new_game_headline
-import quoridor.app.shared.generated.resources.new_game_overline
+import quoridor.app.shared.generated.resources.difficulty_back
+import quoridor.app.shared.generated.resources.difficulty_headline
+import quoridor.app.shared.generated.resources.difficulty_overline
 
+/**
+ * Submenú de selección de dificultad para el modo contra la IA.
+ *
+ * Al elegir una opción arranca la partida con esa [DifficultyOption]; el botón
+ * atrás vuelve al menú de modos sin iniciar partida.
+ */
 @Composable
-internal fun MainScreen(
-    onNavigateToGame: (GameSetup) -> Unit,
-    viewModel: MainViewModel = viewModel { MainViewModel() },
-) {
-    var difficultyMode by remember { mutableStateOf<GameMode?>(null) }
-
-    LaunchedEffect(viewModel) {
-        viewModel.sideEffects.collect { effect ->
-            when (effect) {
-                is MainSideEffect.NavigateToGame -> {
-                    difficultyMode = null
-                    onNavigateToGame(effect.setup)
-                }
-                is MainSideEffect.NavigateToDifficulty -> difficultyMode = effect.mode
-            }
-        }
-    }
-
-    val mode = difficultyMode
-    if (mode != null) {
-        DifficultyScreen(
-            onSelectDifficulty = { option ->
-                viewModel.onEvent(MainEvent.SelectDifficulty(mode, option))
-            },
-            onBack = { difficultyMode = null },
-        )
-    } else {
-        MainContent(state = viewModel.uiState, onEvent = viewModel::onEvent)
-    }
-}
-
-@Composable
-private fun MainContent(
-    state: MainUiState,
-    onEvent: (MainEvent) -> Unit,
+internal fun DifficultyScreen(
+    onSelectDifficulty: (DifficultyOption) -> Unit,
+    onBack: () -> Unit,
+    options: List<DifficultyOption> = DifficultyOption.entries,
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -95,23 +65,36 @@ private fun MainContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.Start,
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.difficulty_back),
+                            tint = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    Text(
+                        text = stringResource(Res.string.difficulty_overline),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Start,
+                    )
+                }
                 Text(
-                    text = stringResource(Res.string.new_game_overline),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Start,
-                )
-                Text(
-                    text = stringResource(Res.string.new_game_headline),
+                    text = stringResource(Res.string.difficulty_headline),
                     style = MaterialTheme.typography.headlineLarge,
                     textAlign = TextAlign.Start,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
 
-                state.modes.forEach { mode ->
-                    GameModeCard(
-                        mode = mode,
-                        onClick = { onEvent(MainEvent.SelectMode(mode)) },
+                options.forEach { option ->
+                    DifficultyCard(
+                        option = option,
+                        onClick = { onSelectDifficulty(option) },
                     )
                 }
             }
@@ -120,16 +103,14 @@ private fun MainContent(
 }
 
 @Composable
-private fun GameModeCard(
-    mode: GameMode,
+private fun DifficultyCard(
+    option: DifficultyOption,
     onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
-        enabled = mode.enabled,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -147,8 +128,8 @@ private fun GameModeCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = mode.icon,
-                    contentDescription = stringResource(mode.titleRes),
+                    imageVector = option.icon,
+                    contentDescription = stringResource(option.titleRes),
                     modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.secondary,
                 )
@@ -158,40 +139,31 @@ private fun GameModeCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = stringResource(mode.titleRes),
+                    text = stringResource(option.titleRes),
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
-                    text = stringResource(mode.descriptionRes),
+                    text = stringResource(option.descriptionRes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 3,
+                    minLines = 2,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (mode.enabled) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Text(
-                    text = stringResource(Res.string.coming_soon),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
 @Preview
 @Composable
-private fun MainContentPreview() {
+private fun DifficultyScreenPreview() {
     QuoridorTheme {
-        MainContent(state = MainUiState(), onEvent = {})
+        DifficultyScreen(onSelectDifficulty = {}, onBack = {})
     }
 }

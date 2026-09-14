@@ -2,6 +2,7 @@ package com.btello.quoridor.presentation.game
 
 import com.btello.quoridor.domain.model.Cell
 import com.btello.quoridor.domain.model.GameState
+import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.model.Wall
 
 /**
@@ -13,5 +14,7 @@ internal data class GameUiState(
     val legalWalls: Set<Wall> = emptySet(),
     val feedback: GameFeedback? = null,
     val isGameOver: Boolean = false,
+    val isAiThinking: Boolean = false,
+    val aiPlayers: Set<PlayerId> = emptySet(),
     val winnerNumber: Int? = null,
 )

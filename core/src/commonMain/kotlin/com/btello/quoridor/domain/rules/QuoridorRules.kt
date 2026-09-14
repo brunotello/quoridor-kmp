@@ -72,6 +72,37 @@ object QuoridorRules {
     fun isGameOver(state: GameState): Boolean =
         state.status == GameStatus.GAME_OVER || state.players.any { hasReachedGoal(state, it) }
 
+    /**
+     * Longitud (en pasos ortogonales) del camino más corto del jugador [playerId]
+     * hasta su [GoalSide], respetando los muros del tablero. Ignora a los demás
+     * peones (pueden moverse). Devuelve `null` si el jugador no existe o no tiene
+     * camino a su meta.
+     */
+    fun shortestPathLength(state: GameState, playerId: PlayerId): Int? {
+        val player = state.players.firstOrNull { it.id == playerId } ?: return null
+        val board = state.board
+        val queue = ArrayDeque<Cell>()
+        val distance = mutableMapOf(player.position to 0)
+        queue.add(player.position)
+
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            val currentDistance = distance.getValue(current)
+            if (reachedGoal(board, player.goalSide, current)) return currentDistance
+            for ((dr, dc) in listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)) {
+                val nextRow = current.row + dr
+                val nextCol = current.col + dc
+                if (nextRow !in 0 until board.size || nextCol !in 0 until board.size) continue
+                val next = Cell(nextRow, nextCol)
+                if (next in distance) continue
+                if (isWallBlocking(board, current, next)) continue
+                distance[next] = currentDistance + 1
+                queue.add(next)
+            }
+        }
+        return null
+    }
+
     private fun buildPlayers(playerCount: Int): List<Player> {
         val starterPositions = when (playerCount) {
             2 -> listOf(
@@ -233,15 +264,16 @@ object QuoridorRules {
         return MoveResult(state = nextState, isSuccessful = true)
     }
 
-    private fun hasReachedGoal(state: GameState, player: Player): Boolean {
-        val position = player.position
-        return when (player.goalSide) {
+    private fun hasReachedGoal(state: GameState, player: Player): Boolean =
+        reachedGoal(state.board, player.goalSide, player.position)
+
+    private fun reachedGoal(board: Board, goalSide: GoalSide, position: Cell): Boolean =
+        when (goalSide) {
             GoalSide.TOP -> position.row == 0
-            GoalSide.BOTTOM -> position.row == state.board.size - 1
+            GoalSide.BOTTOM -> position.row == board.size - 1
             GoalSide.LEFT -> position.col == 0
-            GoalSide.RIGHT -> position.col == state.board.size - 1
+            GoalSide.RIGHT -> position.col == board.size - 1
         }
-    }
 
     private fun hasPathToGoal(board: Board, player: Player): Boolean {
         val queue = ArrayDeque<Cell>()
