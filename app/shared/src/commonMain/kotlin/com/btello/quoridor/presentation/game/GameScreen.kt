@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +31,8 @@ import com.btello.quoridor.presentation.theme.QuoridorTheme
 import com.btello.quoridor.presentation.theme.playerColor
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
+import quoridor.app.shared.generated.resources.ai_player_name
+import quoridor.app.shared.generated.resources.ai_thinking
 import quoridor.app.shared.generated.resources.feedback_invalid_move
 import quoridor.app.shared.generated.resources.feedback_invalid_wall
 import quoridor.app.shared.generated.resources.feedback_no_legal_walls
@@ -38,10 +42,10 @@ import quoridor.app.shared.generated.resources.player_name
 
 @Composable
 internal fun GameScreen(
-    config: GameConfig,
+    setup: GameSetup,
     sessionKey: Int,
     onNavigateToMenu: () -> Unit,
-    viewModel: GameViewModel = viewModel(key = "game-$sessionKey") { GameViewModel(config) },
+    viewModel: GameViewModel = viewModel(key = "game-$sessionKey") { GameViewModel(setup) },
 ) {
     LaunchedEffect(viewModel) {
         viewModel.sideEffects.collect { effect ->
@@ -80,11 +84,16 @@ private fun GameContent(
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         ) {
             if (topPlayer != null) {
+                val topIsAi = topPlayer.id in state.aiPlayers
                 PlayerPanel(
                     player = topPlayer,
                     isActive = topPlayer.id == activePlayer.id,
+                    isAi = topIsAi,
                     onClick = { onEvent(GameEvent.WallReserveClick) },
                 )
+                if (topIsAi) {
+                    AiThinkingSlot(visible = state.isAiThinking)
+                }
             }
 
             val feedback = state.feedback
@@ -118,10 +127,44 @@ private fun GameContent(
             }
 
             if (bottomPlayer != null) {
+                val bottomIsAi = bottomPlayer.id in state.aiPlayers
                 PlayerPanel(
                     player = bottomPlayer,
                     isActive = bottomPlayer.id == activePlayer.id,
+                    isAi = bottomIsAi,
                     onClick = { onEvent(GameEvent.WallReserveClick) },
+                )
+                if (bottomIsAi) {
+                    AiThinkingSlot(visible = state.isAiThinking)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiThinkingSlot(visible: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 32.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (visible) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(Res.string.ai_thinking),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
             }
         }
@@ -135,6 +178,7 @@ private fun feedbackText(feedback: GameFeedback): String = when (feedback) {
     GameFeedback.InvalidWall -> stringResource(Res.string.feedback_invalid_wall)
     GameFeedback.InvalidMove -> stringResource(Res.string.feedback_invalid_move)
     GameFeedback.GameOver -> stringResource(Res.string.game_over)
+    GameFeedback.AiThinking -> stringResource(Res.string.ai_thinking)
     is GameFeedback.DomainMessage -> feedback.text
 }
 
@@ -142,6 +186,7 @@ private fun feedbackText(feedback: GameFeedback): String = when (feedback) {
 private fun PlayerPanel(
     player: Player,
     isActive: Boolean,
+    isAi: Boolean,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -156,7 +201,11 @@ private fun PlayerPanel(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(Res.string.player_name, player.id.value + 1),
+                text = if (isAi) {
+                    stringResource(Res.string.ai_player_name)
+                } else {
+                    stringResource(Res.string.player_name, player.id.value + 1)
+                },
                 style = MaterialTheme.typography.titleMedium,
             )
             Row(
@@ -197,7 +246,16 @@ private fun PlayerPanelPreview() {
         PlayerPanel(
             player = QuoridorRules.startGame(GameConfig(playerCount = 2)).players.first(),
             isActive = true,
+            isAi = false,
             onClick = {},
         )
+    }
+}
+
+@Preview
+@Composable
+private fun AiThinkingSlotPreview() {
+    QuoridorTheme {
+        AiThinkingSlot(visible = true)
     }
 }

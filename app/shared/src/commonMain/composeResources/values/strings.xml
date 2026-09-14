@@ -9,6 +9,7 @@
     <string name="winner">Ganador: Jugador %1$d</string>
     <string name="new_game">Nueva partida</string>
     <string name="player_name">Jugador %1$d</string>
+    <string name="ai_player_name">IA</string>
     <string name="pawn_label">%1$d</string>
     <string name="feedback_no_walls_remaining">No quedan muros disponibles.</string>
     <string name="feedback_no_legal_walls">No hay ubicaciones legales para colocar muros.</string>
@@ -28,6 +29,18 @@
     <string name="game_mode_pvai">vs IA</string>
     <string name="game_mode_pvai_description">Desafía a nuestra IA en distintos niveles de dificultad y pon a prueba tu dominio de los muros.</string>
     <string name="coming_soon">Próximamente</string>
+
+    <!-- Dificultad IA -->
+    <string name="difficulty_overline">SELECCIONA DIFICULTAD</string>
+    <string name="difficulty_headline">¿Qué tan fuerte juega la IA?</string>
+    <string name="difficulty_back">Volver</string>
+    <string name="difficulty_easy">Fácil</string>
+    <string name="difficulty_easy_description">Ideal para aprender. La IA avanza sin mucha estrategia y rara vez coloca muros.</string>
+    <string name="difficulty_medium">Media</string>
+    <string name="difficulty_medium_description">Un rival equilibrado: busca el camino más corto y coloca muros cuando te conviene menos.</string>
+    <string name="difficulty_hard">Difícil</string>
+    <string name="difficulty_hard_description">La IA anticipa tu respuesta y usa los muros de forma estratégica. Todo un desafío.</string>
+    <string name="ai_thinking">La IA está pensando…</string>
 
     <!-- Reglas -->
     <string name="rules_title">Reglas del juego</string>

@@ -25,9 +25,19 @@ internal class MainViewModel : ViewModel() {
     fun onEvent(event: MainEvent) {
         when (event) {
             is MainEvent.SelectMode -> {
-                if (event.mode.enabled) {
-                    _sideEffects.trySend(MainSideEffect.NavigateToGame(event.mode.toGameConfig()))
+                if (!event.mode.enabled) return
+                val effect = if (event.mode.requiresDifficulty) {
+                    MainSideEffect.NavigateToDifficulty(event.mode)
+                } else {
+                    MainSideEffect.NavigateToGame(event.mode.toGameSetup())
                 }
+                _sideEffects.trySend(effect)
+            }
+
+            is MainEvent.SelectDifficulty -> {
+                _sideEffects.trySend(
+                    MainSideEffect.NavigateToGame(event.mode.toGameSetup(event.option.difficulty)),
+                )
             }
         }
     }

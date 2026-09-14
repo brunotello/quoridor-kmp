@@ -5,4 +5,5 @@ package com.btello.quoridor.presentation.main
  */
 internal sealed interface MainEvent {
     data class SelectMode(val mode: GameMode) : MainEvent
+    data class SelectDifficulty(val mode: GameMode, val option: DifficultyOption) : MainEvent
 }

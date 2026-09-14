@@ -8,14 +8,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.btello.quoridor.Destination.Game
 import com.btello.quoridor.Destination.Home
-import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.presentation.game.GameScreen
+import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.navigationbar.NavBar
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 
 private sealed interface Destination {
     data object Home : Destination
-    data class Game(val config: GameConfig, val sessionId: Int) : Destination
+    data class Game(val setup: GameSetup, val sessionId: Int) : Destination
 }
 
 @Composable
@@ -31,13 +31,13 @@ fun App() {
             Home -> NavBar(
                 darkTheme = darkTheme,
                 onToggleTheme = { darkTheme = it },
-                onNavigateToGame = { config ->
+                onNavigateToGame = { setup ->
                     sessionId += 1
-                    destination = Game(config, sessionId)
+                    destination = Game(setup, sessionId)
                 },
             )
             is Game -> GameScreen(
-                config = current.config,
+                setup = current.setup,
                 sessionKey = current.sessionId,
                 onNavigateToMenu = { destination = Home },
             )

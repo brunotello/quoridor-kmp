@@ -15,7 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.btello.quoridor.domain.model.GameConfig
+import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.navigationbar.Tabs.GAME
 import com.btello.quoridor.presentation.navigationbar.Tabs.RULES
 import com.btello.quoridor.presentation.navigationbar.Tabs.SETTINGS
@@ -35,7 +35,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun NavBar(
     darkTheme: Boolean,
     onToggleTheme: (Boolean) -> Unit,
-    onNavigateToGame: (GameConfig) -> Unit,
+    onNavigateToGame: (GameSetup) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(GAME) }
 

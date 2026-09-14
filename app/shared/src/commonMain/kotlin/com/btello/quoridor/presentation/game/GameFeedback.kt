@@ -12,6 +12,7 @@ internal sealed interface GameFeedback {
     data object InvalidWall : GameFeedback
     data object InvalidMove : GameFeedback
     data object GameOver : GameFeedback
+    data object AiThinking : GameFeedback
 
     /** Mensaje proveniente del dominio (p. ej. [com.btello.quoridor.domain.rules.DomainError]). */
     data class DomainMessage(val text: String) : GameFeedback

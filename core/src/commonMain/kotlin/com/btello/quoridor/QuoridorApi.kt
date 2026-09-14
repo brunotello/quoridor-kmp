@@ -1,5 +1,7 @@
 package com.btello.quoridor
 
+import com.btello.quoridor.domain.ai.AiDifficulty
+import com.btello.quoridor.domain.ai.AiStrategy
 import com.btello.quoridor.domain.model.Board
 import com.btello.quoridor.domain.model.Cell
 import com.btello.quoridor.domain.model.GameConfig
@@ -16,6 +18,7 @@ import com.btello.quoridor.domain.model.WallMove
 import com.btello.quoridor.domain.model.WallOrientation
 import com.btello.quoridor.domain.rules.DomainError
 import com.btello.quoridor.domain.rules.QuoridorRules
+import kotlin.random.Random
 
 fun startGame(config: GameConfig): GameState = QuoridorRules.startGame(config)
 fun startGame(playerCount: Int): GameState = QuoridorRules.startGame(playerCount)
@@ -23,6 +26,14 @@ fun validateMove(state: GameState, move: Move): ValidationResult = QuoridorRules
 fun applyMove(state: GameState, move: Move): MoveResult = QuoridorRules.applyMove(state, move)
 fun getLegalMoves(state: GameState): List<Move> = QuoridorRules.getLegalMoves(state)
 fun isGameOver(state: GameState): Boolean = QuoridorRules.isGameOver(state)
+
+/** Elige una jugada de la IA para [playerId] según el nivel [difficulty]. */
+fun chooseAiMove(
+    state: GameState,
+    playerId: PlayerId,
+    difficulty: AiDifficulty,
+    random: Random = Random.Default,
+): Move? = AiStrategy.forDifficulty(difficulty, random).chooseMove(state, playerId)
 
 typealias BoardValue = Board
 typealias CellValue = Cell
