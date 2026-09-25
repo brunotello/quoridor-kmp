@@ -1,15 +1,17 @@
 package com.btello.quoridor.presentation.navigationbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.jetbrains.compose.resources.StringResource
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.nav_game
 import quoridor.app.shared.generated.resources.nav_rules
 import quoridor.app.shared.generated.resources.nav_settings
+import quoridor.app.shared.generated.resources.nav_stats
 
 /**
  * Pestañas disponibles en el bottom navigation de la pantalla principal.
@@ -24,14 +26,18 @@ internal enum class Tabs(
 ) {
     GAME(
         labelRes = Res.string.nav_game,
-        icon = Icons.Outlined.PlayArrow,
+        icon = Icons.Filled.PlayArrow,
     ),
     RULES(
         labelRes = Res.string.nav_rules,
-        icon = Icons.AutoMirrored.Outlined.List,
+        icon = Icons.AutoMirrored.Filled.List,
+    ),
+    STATS(
+        labelRes = Res.string.nav_stats,
+        icon = Icons.Filled.BarChart,
     ),
     SETTINGS(
         labelRes = Res.string.nav_settings,
-        icon = Icons.Outlined.Settings,
+        icon = Icons.Filled.Settings,
     ),
 }
