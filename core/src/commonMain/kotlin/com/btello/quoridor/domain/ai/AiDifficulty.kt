@@ -1,5 +1,7 @@
 package com.btello.quoridor.domain.ai
 
+import kotlinx.serialization.Serializable
+
 /**
  * Niveles de dificultad del oponente controlado por la IA.
  *
@@ -7,9 +9,13 @@ package com.btello.quoridor.domain.ai
  * - [MEDIUM]: intermedio, avanza por el camino más corto y coloca muros sólo si
  *   mejoran la diferencia de distancias.
  * - [HARD]: avanzado, evalúa la respuesta del rival (minimax acotado a 2 plies).
+ * - [EXPERT]: experto, minimax con poda alfa-beta a varios plies; anticipa
+ *   combinaciones de muros y trampas a varias jugadas vista.
  */
+@Serializable
 enum class AiDifficulty {
     EASY,
     MEDIUM,
     HARD,
+    EXPERT,
 }

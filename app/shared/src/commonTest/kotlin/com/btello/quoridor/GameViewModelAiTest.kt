@@ -90,4 +90,42 @@ class GameViewModelAiTest {
         assertEquals(PlayerId(1), vm.uiState.gameState.turn.playerId)
         assertTrue(vm.uiState.legalTargets.isNotEmpty())
     }
+
+    @Test
+    fun `in a four player game the ai plays every non-human seat back to the human`() {
+        val vm = GameViewModel(
+            setup = GameSetup(
+                config = GameConfig(playerCount = 4),
+                aiPlayers = setOf(PlayerId(1), PlayerId(2), PlayerId(3)),
+                difficulty = AiDifficulty.EASY,
+            ),
+            aiStrategy = FirstPawnMoveStrategy(),
+            autoRunAi = false,
+        )
+
+        assertEquals(setOf(PlayerId(1), PlayerId(2), PlayerId(3)), vm.uiState.aiPlayers)
+        assertEquals(PlayerId(0), vm.uiState.gameState.turn.playerId)
+        assertFalse(vm.aiControlsCurrentTurn())
+
+        vm.onEvent(GameEvent.CellClick(Cell(1, 4)))
+        assertTrue(vm.aiControlsCurrentTurn())
+
+        vm.runAiTurnsForTest()
+
+        assertEquals(PlayerId(0), vm.uiState.gameState.turn.playerId)
+        assertFalse(vm.aiControlsCurrentTurn())
+        assertTrue(vm.uiState.legalTargets.isNotEmpty())
+    }
+
+    @Test
+    fun `a four player game with only local humans never hands control to the ai`() {
+        val vm = GameViewModel(
+            setup = GameSetup(config = GameConfig(playerCount = 4)),
+            autoRunAi = false,
+        )
+        vm.onEvent(GameEvent.CellClick(Cell(1, 4)))
+        assertFalse(vm.aiControlsCurrentTurn())
+        assertEquals(PlayerId(1), vm.uiState.gameState.turn.playerId)
+        assertTrue(vm.uiState.legalTargets.isNotEmpty())
+    }
 }

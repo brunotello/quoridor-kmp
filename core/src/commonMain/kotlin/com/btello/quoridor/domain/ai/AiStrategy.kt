@@ -1,6 +1,7 @@
 package com.btello.quoridor.domain.ai
 
 import com.btello.quoridor.domain.ai.AiDifficulty.EASY
+import com.btello.quoridor.domain.ai.AiDifficulty.EXPERT
 import com.btello.quoridor.domain.ai.AiDifficulty.HARD
 import com.btello.quoridor.domain.ai.AiDifficulty.MEDIUM
 import com.btello.quoridor.domain.model.GameState
@@ -24,6 +25,14 @@ interface AiStrategy {
      */
     fun chooseMove(state: GameState, playerId: PlayerId): Move?
 
+    /**
+     * Variante suspendible de [chooseMove]. Las estrategias con búsqueda costosa
+     * pueden sobrescribirla para repartir el trabajo entre varios hilos usando
+     * corrutinas. Por defecto delega en [chooseMove] (cómputo secuencial).
+     */
+    suspend fun chooseMoveAsync(state: GameState, playerId: PlayerId): Move? =
+        chooseMove(state, playerId)
+
     companion object {
         /** Crea la estrategia asociada al nivel [difficulty]. */
         fun forDifficulty(
@@ -33,6 +42,7 @@ interface AiStrategy {
             EASY -> EasyAiStrategy(random)
             MEDIUM -> MediumAiStrategy(random)
             HARD -> HardAiStrategy(random)
+            EXPERT -> ExpertAiStrategy(random)
         }
     }
 }

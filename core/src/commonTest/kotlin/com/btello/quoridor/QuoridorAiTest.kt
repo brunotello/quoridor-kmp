@@ -1,12 +1,14 @@
 package com.btello.quoridor
 
 import com.btello.quoridor.domain.ai.AiDifficulty
+import com.btello.quoridor.domain.ai.ExpertAiStrategy
 import com.btello.quoridor.domain.model.Cell
 import com.btello.quoridor.domain.model.GameStatus
 import com.btello.quoridor.domain.model.Move
 import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.model.Turn
 import com.btello.quoridor.domain.rules.QuoridorRules
+import kotlinx.coroutines.test.runTest
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -75,6 +77,30 @@ class QuoridorAiTest {
         val move = chooseAiMove(nearGoal, PlayerId(0), AiDifficulty.HARD, Random(1))
         assertTrue(move is Move.PawnMove)
         assertEquals(Cell(8, 4), (move as Move.PawnMove).to)
+    }
+
+    @Test
+    fun `expert takes the winning move when one step from the goal`() {
+        val base = freshState()
+        val nearGoal = base.copy(
+            players = listOf(
+                base.players[0].copy(position = Cell(7, 4)),
+                base.players[1].copy(position = Cell(1, 0)),
+            ),
+        )
+        val move = chooseAiMove(nearGoal, PlayerId(0), AiDifficulty.EXPERT, Random(1))
+        assertTrue(move is Move.PawnMove)
+        assertEquals(Cell(8, 4), (move as Move.PawnMove).to)
+    }
+
+    @Test
+    fun `expert async choice matches the sequential one for a fixed seed`() = runTest {
+        val state = freshState()
+        for (seed in listOf(1, 7, 42, 123)) {
+            val sequential = ExpertAiStrategy(Random(seed), maxDepth = 2).chooseMove(state, PlayerId(0))
+            val parallel = ExpertAiStrategy(Random(seed), maxDepth = 2).chooseMoveAsync(state, PlayerId(0))
+            assertEquals(sequential, parallel, "async differs from sync for seed $seed")
+        }
     }
 
     @Test

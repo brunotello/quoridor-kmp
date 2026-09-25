@@ -46,18 +46,4 @@ internal class HardAiStrategy(
         }
         return if (worst == Double.POSITIVE_INFINITY) positionalScore(state, me) else worst
     }
-
-    /** Movimientos de peón + los [wallLimit] muros mejor puntuados a 1 ply. */
-    private fun candidateMoves(
-        state: GameState,
-        id: PlayerId,
-        moves: List<Move>,
-        wallLimit: Int,
-    ): List<Move> {
-        val pawnMoves = moves.filterIsInstance<Move.PawnMove>()
-        val wallMoves = moves.filterIsInstance<Move.PlaceWall>()
-            .sortedByDescending { scoreAfter(state, it, id) }
-            .take(wallLimit)
-        return pawnMoves + wallMoves
-    }
 }
