@@ -19,8 +19,8 @@ internal object QuoridorTheme {
 }
 
 private val QuoridorDarkColorScheme = darkColorScheme(
-    primary = blue_100,
-    secondary = pink_500,
+    primary = blue_0,
+    secondary = pink_200,
 )
 
 private val QuoridorLightColorScheme = lightColorScheme(
@@ -36,7 +36,7 @@ internal fun QuoridorTheme(
     darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalBoardColors provides DefaultBoardColors) {
+    CompositionLocalProvider(LocalBoardColors provides boardColorsFor(darkTheme)) {
         MaterialTheme(
             colorScheme = if (darkTheme) QuoridorDarkColorScheme else QuoridorLightColorScheme,
             typography = QuoridorTypography,

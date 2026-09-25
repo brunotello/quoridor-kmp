@@ -39,7 +39,31 @@ internal val DefaultBoardColors: QuoridorBoardColors = QuoridorBoardColors(
     ),
 )
 
+internal val LightBoardColors: QuoridorBoardColors = QuoridorBoardColors(
+    background = blue_150,
+    cell = slate_50,
+    cellTarget = blue_200,
+    cellActive = blue_300,
+    wallPlaced = blue_600,
+    wallLegal = cyan_0,
+    pawnLabel = gray_0,
+    wallReserve = gray_700,
+    players = listOf(
+        blue_0,
+        pink_500,
+        green_700,
+        orange_500,
+    ),
+)
+
 internal val LocalBoardColors = staticCompositionLocalOf { DefaultBoardColors }
+
+/**
+ * Paleta del tablero según el modo del tema, resuelta como función pura para
+ * poder testearla sin infraestructura de Compose.
+ */
+internal fun boardColorsFor(darkTheme: Boolean): QuoridorBoardColors =
+    if (darkTheme) DefaultBoardColors else LightBoardColors
 
 /**
  * Índice de color de peón para un identificador de jugador dado.

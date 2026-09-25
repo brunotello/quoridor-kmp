@@ -11,8 +11,10 @@ import androidx.compose.ui.text.font.FontWeight
  */
 internal val QuoridorTypography: Typography = Typography().run {
     copy(
+        displayLarge = displayLarge.copy(fontWeight = FontWeight.Bold),
         displaySmall = displaySmall.copy(fontWeight = FontWeight.Bold),
         headlineMedium = headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+        headlineSmall = headlineSmall.copy(fontWeight = FontWeight.Bold),
         titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
         titleMedium = titleMedium.copy(fontWeight = FontWeight.SemiBold),
         labelLarge = labelLarge.copy(fontWeight = FontWeight.Medium),
