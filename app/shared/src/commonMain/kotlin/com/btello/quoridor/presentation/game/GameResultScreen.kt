@@ -18,12 +18,14 @@ import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.game_over
 import quoridor.app.shared.generated.resources.new_game
+import quoridor.app.shared.generated.resources.online_opponent_left
 import quoridor.app.shared.generated.resources.winner
 
 @Composable
 internal fun GameResultScreen(
     winnerNumber: Int,
     onNewGame: () -> Unit,
+    isAbandoned: Boolean = false,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -36,7 +38,11 @@ internal fun GameResultScreen(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Text(
-                text = stringResource(Res.string.winner, winnerNumber),
+                text = if (isAbandoned) {
+                    stringResource(Res.string.online_opponent_left)
+                } else {
+                    stringResource(Res.string.winner, winnerNumber)
+                },
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(top = 12.dp),
             )
@@ -58,5 +64,13 @@ internal fun GameResultScreen(
 private fun GameResultScreenPreview() {
     QuoridorTheme {
         GameResultScreen(winnerNumber = 1, onNewGame = {})
+    }
+}
+
+@Preview
+@Composable
+private fun GameResultScreenAbandonedPreview() {
+    QuoridorTheme {
+        GameResultScreen(winnerNumber = 1, onNewGame = {}, isAbandoned = true)
     }
 }
