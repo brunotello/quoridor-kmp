@@ -15,4 +15,5 @@ internal data class GameSetup(
     val config: GameConfig,
     val aiPlayers: Set<PlayerId> = emptySet(),
     val difficulty: AiDifficulty? = null,
+    val online: OnlineSession? = null,
 )

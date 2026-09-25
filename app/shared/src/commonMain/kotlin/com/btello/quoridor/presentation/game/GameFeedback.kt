@@ -14,6 +14,12 @@ internal sealed interface GameFeedback {
     data object GameOver : GameFeedback
     data object AiThinking : GameFeedback
 
+    /** Online: la sala espera a que se conecten los jugadores. */
+    data object WaitingOpponent : GameFeedback
+
+    /** Online: un jugador abandonó la partida. */
+    data object OpponentLeft : GameFeedback
+
     /** Mensaje proveniente del dominio (p. ej. [com.btello.quoridor.domain.rules.DomainError]). */
     data class DomainMessage(val text: String) : GameFeedback
 }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.btello.quoridor.presentation.theme.QuoridorTheme
+import com.btello.quoridor.presentation.theme.safeAreaTopPadding
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
@@ -51,6 +52,7 @@ internal fun RulesScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeAreaTopPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
