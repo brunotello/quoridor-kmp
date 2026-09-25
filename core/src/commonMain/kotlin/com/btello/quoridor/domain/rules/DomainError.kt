@@ -1,6 +1,5 @@
 package com.btello.quoridor.domain.rules
 
-import kotlinx.serialization.Serializable
 
 sealed class DomainError(message: String) : IllegalArgumentException(message) {
     class OutOfBounds(message: String = "Cell is outside the board") : DomainError(message)

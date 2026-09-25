@@ -52,6 +52,7 @@ Carthage/
 *.keystore
 secrets.properties
 google-services.json
+GoogleService-Info.plist
 
 # Misc
 *.tmp
