@@ -11,6 +11,8 @@ fun main() {
         .start(wait = true)
 }
 
+fun sayHello(name: String): String = "Hello, $name!"
+
 fun Application.module() {
     routing {
         get("/") {
