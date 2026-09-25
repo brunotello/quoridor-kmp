@@ -23,22 +23,36 @@ internal class MainViewModel : ViewModel() {
     val sideEffects: Flow<MainSideEffect> = _sideEffects.receiveAsFlow()
 
     fun onEvent(event: MainEvent) {
-        when (event) {
-            is MainEvent.SelectMode -> {
-                if (!event.mode.enabled) return
-                val effect = if (event.mode.requiresDifficulty) {
-                    MainSideEffect.NavigateToDifficulty(event.mode)
-                } else {
-                    MainSideEffect.NavigateToGame(event.mode.toGameSetup())
-                }
-                _sideEffects.trySend(effect)
-            }
+        effectFor(event)?.let { _sideEffects.trySend(it) }
+    }
 
-            is MainEvent.SelectDifficulty -> {
-                _sideEffects.trySend(
-                    MainSideEffect.NavigateToGame(event.mode.toGameSetup(event.option.difficulty)),
-                )
-            }
+    /**
+     * Efecto de navegación para [event], o `null` si debe ignorarse (modo
+     * deshabilitado). Se expone como función pura para poder testear la lógica de
+     * selección sin infraestructura de corrutinas.
+     */
+    internal fun effectFor(event: MainEvent): MainSideEffect? = when (event) {
+        is MainEvent.SelectMode -> when {
+            !event.mode.enabled -> null
+            event.mode.requiresLobby -> MainSideEffect.NavigateToOnlineLobby
+            event.mode.configurableAi -> MainSideEffect.NavigateToPlayerSetup(event.mode)
+            event.mode.requiresDifficulty ->
+                MainSideEffect.NavigateToDifficulty(event.mode, event.mode.aiCount)
+
+            else -> MainSideEffect.NavigateToGame(event.mode.toGameSetup())
         }
+
+        is MainEvent.SelectPlayerSetup -> if (event.option.requiresDifficulty) {
+            MainSideEffect.NavigateToDifficulty(event.mode, event.option.aiCount)
+        } else {
+            MainSideEffect.NavigateToGame(event.mode.toGameSetup(aiCount = event.option.aiCount))
+        }
+
+        is MainEvent.SelectDifficulty -> MainSideEffect.NavigateToGame(
+            event.mode.toGameSetup(
+                aiCount = event.aiCount,
+                difficulty = event.option.difficulty,
+            ),
+        )
     }
 }

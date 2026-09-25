@@ -18,16 +18,54 @@
     <!-- Bottom navigation -->
     <string name="nav_game">Game</string>
     <string name="nav_rules">Rules</string>
+    <string name="nav_stats">Statistics</string>
     <string name="nav_settings">Settings</string>
 
+    <!-- Statistics -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_empty">You haven't played any games yet. Play one to see your statistics!</string>
+    <string name="stats_total_games">Games played</string>
+    <string name="stats_section_results">RESULTS BY DIFFICULTY</string>
+    <string name="stats_section_records">BEST RECORDS</string>
+    <string name="stats_best_time">Fastest win</string>
+    <string name="stats_fewest_moves">Fewest moves</string>
+    <string name="stats_fewest_walls">Fewest walls used</string>
+    <string name="stats_difficulty_local">Local 1 vs 1</string>
+    <string name="stats_result_summary">%1$d won · %2$d lost</string>
+    <string name="stats_games_count">%1$d games</string>
+    <string name="stats_time_format">%1$s:%2$s</string>
+    <string name="stats_count_value">%1$d</string>
+    <string name="stats_value_none">—</string>
+
     <!-- New game -->
-    <string name="new_game_overline">SELECT MODE</string>
     <string name="new_game_headline">How do you want to play?</string>
     <string name="game_mode_pvp">1 vs 1</string>
     <string name="game_mode_pvp_description">Share a device and take turns. Perfect for in-person, face-to-face strategy matches.</string>
     <string name="game_mode_pvai">vs AI</string>
     <string name="game_mode_pvai_description">Challenge our strategic AI across difficulty levels and test your wall-placement mastery.</string>
+    <string name="game_mode_4p">4 players</string>
+    <string name="game_mode_4p_description">A four-way match. Choose how many rivals the AI controls and who shares the device.</string>
+    <string name="game_mode_online">Online</string>
+    <string name="game_mode_online_description">Play with 2 or 4 people on other devices. Create a room or join with a code.</string>
     <string name="coming_soon">Coming soon</string>
+
+    <!-- 4-player setup -->
+    <string name="player_setup_headline">How many rivals does the AI control?</string>
+    <string name="player_setup_humans_title">All humans</string>
+    <string name="player_setup_humans_description">All 4 players share the device and take turns.</string>
+    <string name="player_setup_one_ai_title">1 AI rival</string>
+    <string name="player_setup_one_ai_description">You and 2 other humans against 1 AI player.</string>
+    <string name="player_setup_two_ai_title">2 AI rivals</string>
+    <string name="player_setup_two_ai_description">You and another human against 2 AI players.</string>
+    <string name="player_setup_three_ai_title">3 AI rivals</string>
+    <string name="player_setup_three_ai_description">Just you against 3 AI players.</string>
+
+    <!-- Emojis (language-neutral) -->
+    <string name="game_mode_pvp_emoji">👥</string>
+    <string name="game_mode_pvai_emoji">🤖</string>
+    <string name="game_mode_4p_emoji">👨‍👩‍👧‍👦</string>
+    <string name="game_mode_online_emoji">🌐</string>
+    <string name="difficulty_star_emoji">⭐</string>
 
     <!-- Rules -->
     <string name="rules_title">Game rules</string>
@@ -44,14 +82,67 @@
     <string name="rules_winning_title">How to win</string>
     <string name="rules_winning_body">You win by reaching any square on the row (or column) opposite your starting position.</string>
 
+    <!-- Difficulty -->
+    <string name="difficulty_overline">SELECT DIFFICULTY</string>
+    <string name="difficulty_headline">How strong is the AI?</string>
+    <string name="difficulty_back">Back</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_easy_description">Perfect for your first steps.</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_medium_description">An even match to warm up.</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_hard_description">Sharpen your strategy and outplay the AI.</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="difficulty_expert_description">The ultimate challenge. Are you ready?</string>
+    <string name="ai_thinking">AI is thinking…</string>
+
+    <!-- Online -->
+    <string name="online_your_name">Your name</string>
+    <string name="online_name_headline">Enter your name</string>
+    <string name="online_continue">Continue</string>
+    <string name="online_menu_headline">What would you like to do?</string>
+    <string name="online_create_description">Create a room and share the code with your rivals.</string>
+    <string name="online_join_description">Enter a room code to join.</string>
+    <string name="online_player_count">Players</string>
+    <string name="online_create_match">Create match</string>
+    <string name="online_join_hint">Room code</string>
+    <string name="online_join_match">Join</string>
+    <string name="online_share_code">Share this code with your rivals:</string>
+    <string name="online_waiting_opponent">Waiting for players…</string>
+    <string name="online_waiting_players">Players connected: %1$d/%2$d</string>
+    <string name="online_turn_of">%1$s's turn</string>
+    <string name="online_your_turn">Your turn</string>
+    <string name="online_opponent_left">A player left the match.</string>
+    <string name="online_cancel">Cancel</string>
+    <string name="online_error_not_found">No room found for that code.</string>
+    <string name="online_error_not_joinable">That room is no longer available.</string>
+    <string name="online_error_connection">Couldn't connect. Check your connection and try again.</string>
+    <string name="online_error_unsupported">Online mode isn't available on this platform.</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_preferences">PREFERENCES</string>
+    <string name="settings_section_about">ABOUT</string>
+    <string name="settings_player_name">Player name</string>
+    <string name="settings_player_name_empty">Not set</string>
+    <string name="settings_player_name_hint">Your name</string>
+    <string name="edit_player_name">Edit name</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_description">Choose between light and dark mode.</string>
     <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_spanish">Español</string>
     <string name="settings_about">About</string>
+    <string name="settings_app_version">App version</string>
+    <string name="app_version_format">v%1$s</string>
+    <string name="select_language">Select language</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="action_back">Back</string>
     <string name="about_author">Bruno Tello</string>
-    <string name="about_author_role">Quoridor developer</string>
+    <string name="about_description">Mobile developer with 12 years of experience, I was bored and made this :)\n\nIf you liked the game or found a bug, send me a message on LinkedIn!</string>
+    <string name="about_source_code">You can check out the game's source code on my GitHub.</string>
     <string name="about_github">GitHub</string>
     <string name="about_linkedin">LinkedIn</string>
     <string name="about_github_url">https://github.com/brunotello</string>

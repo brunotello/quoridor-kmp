@@ -1,20 +1,19 @@
 package com.btello.quoridor.presentation.main
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,51 +26,120 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.btello.quoridor.presentation.game.GameSetup
+import com.btello.quoridor.presentation.navigation.AppBackHandler
+import com.btello.quoridor.presentation.navigation.NavAnimatedContent
+import com.btello.quoridor.presentation.online.OnlineLobbyScreen
+import com.btello.quoridor.presentation.theme.EmojiText
 import com.btello.quoridor.presentation.theme.QuoridorTheme
+import com.btello.quoridor.presentation.theme.safeAreaTopPadding
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
+import quoridor.app.shared.generated.resources.app_title
 import quoridor.app.shared.generated.resources.coming_soon
 import quoridor.app.shared.generated.resources.new_game_headline
-import quoridor.app.shared.generated.resources.new_game_overline
 
 @Composable
 internal fun MainScreen(
     onNavigateToGame: (GameSetup) -> Unit,
     viewModel: MainViewModel = viewModel { MainViewModel() },
 ) {
-    var difficultyMode by remember { mutableStateOf<GameMode?>(null) }
+    var difficultySelection by remember { mutableStateOf<DifficultySelection?>(null) }
+    var playerSetupMode by remember { mutableStateOf<GameMode?>(null) }
+    var showOnlineLobby by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.sideEffects.collect { effect ->
             when (effect) {
                 is MainSideEffect.NavigateToGame -> {
-                    difficultyMode = null
+                    difficultySelection = null
+                    playerSetupMode = null
+                    showOnlineLobby = false
                     onNavigateToGame(effect.setup)
                 }
-                is MainSideEffect.NavigateToDifficulty -> difficultyMode = effect.mode
+
+                is MainSideEffect.NavigateToDifficulty ->
+                    difficultySelection = DifficultySelection(effect.mode, effect.aiCount)
+
+                is MainSideEffect.NavigateToPlayerSetup -> playerSetupMode = effect.mode
+
+                MainSideEffect.NavigateToOnlineLobby -> showOnlineLobby = true
             }
         }
     }
 
-    val mode = difficultyMode
-    if (mode != null) {
-        DifficultyScreen(
-            onSelectDifficulty = { option ->
-                viewModel.onEvent(MainEvent.SelectDifficulty(mode, option))
-            },
-            onBack = { difficultyMode = null },
-        )
-    } else {
-        MainContent(state = viewModel.uiState, onEvent = viewModel::onEvent)
+    val selection = difficultySelection
+    val setupMode = playerSetupMode
+    val target: MainNav = when {
+        selection != null -> MainNav.Difficulty(selection)
+        setupMode != null -> MainNav.PlayerSetup(setupMode)
+        showOnlineLobby -> MainNav.OnlineLobby
+        else -> MainNav.Content
+    }
+
+    NavAnimatedContent(
+        targetState = target,
+        depthOf = { if (it is MainNav.Content) 0 else 1 },
+    ) { current ->
+        when (current) {
+            is MainNav.Difficulty -> {
+                AppBackHandler { difficultySelection = null }
+                DifficultyScreen(
+                    onSelectDifficulty = { option ->
+                        viewModel.onEvent(
+                            MainEvent.SelectDifficulty(
+                                current.selection.mode,
+                                current.selection.aiCount,
+                                option,
+                            ),
+                        )
+                    },
+                    onBack = { difficultySelection = null },
+                )
+            }
+
+            is MainNav.PlayerSetup -> {
+                AppBackHandler { playerSetupMode = null }
+                PlayerSetupScreen(
+                    onSelectSetup = { option ->
+                        viewModel.onEvent(MainEvent.SelectPlayerSetup(current.mode, option))
+                    },
+                    onBack = { playerSetupMode = null },
+                )
+            }
+
+            MainNav.OnlineLobby -> {
+                AppBackHandler { showOnlineLobby = false }
+                OnlineLobbyScreen(
+                    onStartGame = { setup ->
+                        showOnlineLobby = false
+                        onNavigateToGame(setup)
+                    },
+                    onBack = { showOnlineLobby = false },
+                )
+            }
+
+            MainNav.Content -> MainContent(state = viewModel.uiState, onEvent = viewModel::onEvent)
+        }
     }
 }
+
+/** Destino interno de [MainScreen], usado para animar la navegación. */
+private sealed interface MainNav {
+    data object Content : MainNav
+    data class Difficulty(val selection: DifficultySelection) : MainNav
+    data class PlayerSetup(val mode: GameMode) : MainNav
+    data object OnlineLobby : MainNav
+}
+
+/** Modo elegido más la cantidad de jugadores IA, pendiente de elegir dificultad. */
+private data class DifficultySelection(val mode: GameMode, val aiCount: Int)
 
 @Composable
 private fun MainContent(
@@ -85,35 +153,43 @@ private fun MainContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .safeAreaTopPadding()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    text = stringResource(Res.string.new_game_overline),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = stringResource(Res.string.app_title),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary,
+                            ),
+                        ),
+                    ),
                     textAlign = TextAlign.Start,
+                    modifier = Modifier.padding(bottom = 32.dp),
                 )
                 Text(
                     text = stringResource(Res.string.new_game_headline),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Start,
-                    modifier = Modifier.padding(bottom = 8.dp),
                 )
+            }
 
-                state.modes.forEach { mode ->
-                    GameModeCard(
-                        mode = mode,
-                        onClick = { onEvent(MainEvent.SelectMode(mode)) },
-                    )
-                }
+            state.modes.forEach { mode ->
+                GameModeCard(
+                    mode = mode,
+                    onClick = { onEvent(MainEvent.SelectMode(mode)) },
+                )
             }
         }
     }
@@ -123,53 +199,30 @@ private fun MainContent(
 private fun GameModeCard(
     mode: GameMode,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        onClick = onClick,
-        enabled = mode.enabled,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-        modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .clickable(enabled = mode.enabled, onClick = onClick)
+                .padding(vertical = 12.dp, horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = mode.icon,
-                    contentDescription = stringResource(mode.titleRes),
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.secondary,
-                )
-            }
-            Column(
+            EmojiText(
+                text = stringResource(mode.emojiRes),
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.size(40.dp).wrapContentSize(Alignment.Center),
+            )
+            Text(
+                text = stringResource(mode.titleRes),
+                style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = stringResource(mode.titleRes),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = stringResource(mode.descriptionRes),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 3,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            )
             if (mode.enabled) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -185,6 +238,10 @@ private fun GameModeCard(
                 )
             }
         }
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
     }
 }
 

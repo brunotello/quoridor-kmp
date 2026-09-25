@@ -35,6 +35,17 @@ fun chooseAiMove(
     random: Random = Random.Default,
 ): Move? = AiStrategy.forDifficulty(difficulty, random).chooseMove(state, playerId)
 
+/**
+ * Variante suspendible de [chooseAiMove]. Estrategias con búsqueda costosa (p. ej.
+ * [AiDifficulty.EXPERT]) reparten el trabajo entre varios hilos con corrutinas.
+ */
+suspend fun chooseAiMoveAsync(
+    state: GameState,
+    playerId: PlayerId,
+    difficulty: AiDifficulty,
+    random: Random = Random.Default,
+): Move? = AiStrategy.forDifficulty(difficulty, random).chooseMoveAsync(state, playerId)
+
 typealias BoardValue = Board
 typealias CellValue = Cell
 typealias PlayerValue = Player

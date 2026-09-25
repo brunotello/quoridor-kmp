@@ -5,9 +5,17 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+// El plugin de Google Services (Firebase) sólo se aplica si existe el archivo de
+// credenciales `google-services.json`. Así el proyecto compila sin Firebase
+// configurado; al añadir el archivo (ver FIREBASE_SETUP.md) se habilita la
+// inicialización automática de Firebase en Android.
+if (file("google-services.json").exists()) {
+    apply(plugin = libs.plugins.googleServices.get().pluginId)
+}
+
 kotlin {
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_11
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 dependencies {
@@ -45,8 +53,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true

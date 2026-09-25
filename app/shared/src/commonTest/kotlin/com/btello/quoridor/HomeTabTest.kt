@@ -4,14 +4,15 @@ import com.btello.quoridor.presentation.navigationbar.Tabs
 import com.btello.quoridor.presentation.navigationbar.Tabs.GAME
 import com.btello.quoridor.presentation.navigationbar.Tabs.RULES
 import com.btello.quoridor.presentation.navigationbar.Tabs.SETTINGS
+import com.btello.quoridor.presentation.navigationbar.Tabs.STATS
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class HomeTabTest {
 
     @Test
-    fun exposesGameRulesAndSettingsInOrder() {
-        assertEquals(listOf(GAME, RULES, SETTINGS), Tabs.entries)
+    fun exposesGameRulesStatsAndSettingsInOrder() {
+        assertEquals(listOf(GAME, RULES, STATS, SETTINGS), Tabs.entries)
     }
 
     @Test

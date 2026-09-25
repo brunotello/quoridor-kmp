@@ -19,28 +19,91 @@
     <!-- Bottom navigation -->
     <string name="nav_game">Juego</string>
     <string name="nav_rules">Reglas</string>
+    <string name="nav_stats">Estadísticas</string>
     <string name="nav_settings">Ajustes</string>
 
+    <!-- Estadísticas -->
+    <string name="stats_title">Estadísticas</string>
+    <string name="stats_empty">Todavía no jugaste ninguna partida. ¡Jugá una para ver tus estadísticas!</string>
+    <string name="stats_total_games">Partidas jugadas</string>
+    <string name="stats_section_results">RESULTADOS POR DIFICULTAD</string>
+    <string name="stats_section_records">MEJORES MARCAS</string>
+    <string name="stats_best_time">Menor tiempo (victoria)</string>
+    <string name="stats_fewest_moves">Menos movimientos</string>
+    <string name="stats_fewest_walls">Menos muros usados</string>
+    <string name="stats_difficulty_local">Local 1 vs 1</string>
+    <string name="stats_result_summary">%1$d ganadas · %2$d perdidas</string>
+    <string name="stats_games_count">%1$d partidas</string>
+    <string name="stats_time_format">%1$s:%2$s</string>
+    <string name="stats_count_value">%1$d</string>
+    <string name="stats_value_none">—</string>
+
     <!-- Nueva partida -->
-    <string name="new_game_overline">SELECCIONA MODO</string>
     <string name="new_game_headline">¿Cómo quieres jugar?</string>
     <string name="game_mode_pvp">1 vs 1</string>
     <string name="game_mode_pvp_description">Compartan un dispositivo y jueguen por turnos. Ideal para partidas presenciales cara a cara.</string>
     <string name="game_mode_pvai">vs IA</string>
     <string name="game_mode_pvai_description">Desafía a nuestra IA en distintos niveles de dificultad y pon a prueba tu dominio de los muros.</string>
+    <string name="game_mode_4p">4 jugadores</string>
+    <string name="game_mode_4p_description">Partida a cuatro bandas. Elige cuántos rivales controla la IA y quiénes comparten el dispositivo.</string>
+    <string name="game_mode_online">Online</string>
+    <string name="game_mode_online_description">Juega con 2 o 4 personas en otros dispositivos. Crea una sala o únete con un código.</string>
     <string name="coming_soon">Próximamente</string>
+
+    <!-- Configuración de 4 jugadores -->
+    <string name="player_setup_headline">¿Cuántos rivales controla la IA?</string>
+    <string name="player_setup_humans_title">Todos humanos</string>
+    <string name="player_setup_humans_description">Los 4 jugadores comparten el dispositivo y juegan por turnos.</string>
+    <string name="player_setup_one_ai_title">1 rival IA</string>
+    <string name="player_setup_one_ai_description">Tú y otros 2 humanos contra 1 jugador IA.</string>
+    <string name="player_setup_two_ai_title">2 rivales IA</string>
+    <string name="player_setup_two_ai_description">Tú y otro humano contra 2 jugadores IA.</string>
+    <string name="player_setup_three_ai_title">3 rivales IA</string>
+    <string name="player_setup_three_ai_description">Tú solo contra 3 jugadores IA.</string>
+
+    <!-- Emojis (language-neutral) -->
+    <string name="game_mode_pvp_emoji">👥</string>
+    <string name="game_mode_pvai_emoji">🤖</string>
+    <string name="game_mode_4p_emoji">👨‍👩‍👧‍👦</string>
+    <string name="game_mode_online_emoji">🌐</string>
+    <string name="difficulty_star_emoji">⭐</string>
 
     <!-- Dificultad IA -->
     <string name="difficulty_overline">SELECCIONA DIFICULTAD</string>
     <string name="difficulty_headline">¿Qué tan fuerte juega la IA?</string>
     <string name="difficulty_back">Volver</string>
     <string name="difficulty_easy">Fácil</string>
-    <string name="difficulty_easy_description">Ideal para aprender. La IA avanza sin mucha estrategia y rara vez coloca muros.</string>
+    <string name="difficulty_easy_description">Perfecto para dar tus primeros pasos.</string>
     <string name="difficulty_medium">Media</string>
-    <string name="difficulty_medium_description">Un rival equilibrado: busca el camino más corto y coloca muros cuando te conviene menos.</string>
+    <string name="difficulty_medium_description">Un duelo parejo para calentar motores.</string>
     <string name="difficulty_hard">Difícil</string>
-    <string name="difficulty_hard_description">La IA anticipa tu respuesta y usa los muros de forma estratégica. Todo un desafío.</string>
+    <string name="difficulty_hard_description">Afilá tu estrategia y superá a la IA.</string>
+    <string name="difficulty_expert">Experto</string>
+    <string name="difficulty_expert_description">El reto definitivo. ¿Te animás?</string>
     <string name="ai_thinking">La IA está pensando…</string>
+
+    <!-- Online -->
+    <string name="online_your_name">Tu nombre</string>
+    <string name="online_name_headline">Ingresa tu nombre</string>
+    <string name="online_continue">Continuar</string>
+    <string name="online_menu_headline">¿Qué querés hacer?</string>
+    <string name="online_create_description">Crea una sala y comparte el código con tus rivales.</string>
+    <string name="online_join_description">Ingresa el código de una sala para unirte.</string>
+    <string name="online_player_count">Jugadores</string>
+    <string name="online_create_match">Crear partida</string>
+    <string name="online_join_hint">Código de sala</string>
+    <string name="online_join_match">Unirse</string>
+    <string name="online_share_code">Comparte este código con tus rivales:</string>
+    <string name="online_waiting_opponent">Esperando a los jugadores…</string>
+    <string name="online_waiting_players">Jugadores conectados: %1$d/%2$d</string>
+    <string name="online_turn_of">Turno de %1$s</string>
+    <string name="online_your_turn">Tu turno</string>
+    <string name="online_opponent_left">Un jugador abandonó la partida.</string>
+    <string name="online_cancel">Cancelar</string>
+    <string name="online_error_not_found">No se encontró una sala con ese código.</string>
+    <string name="online_error_not_joinable">Esa sala ya no está disponible.</string>
+    <string name="online_error_connection">No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="online_error_unsupported">El modo online no está disponible en esta plataforma.</string>
 
     <!-- Reglas -->
     <string name="rules_title">Reglas del juego</string>
@@ -59,12 +122,27 @@
 
     <!-- Ajustes -->
     <string name="settings_title">Ajustes</string>
+    <string name="settings_section_preferences">PREFERENCIAS</string>
+    <string name="settings_section_about">ACERCA DE</string>
+    <string name="settings_player_name">Nombre del jugador</string>
+    <string name="settings_player_name_empty">Sin definir</string>
+    <string name="settings_player_name_hint">Tu nombre</string>
+    <string name="edit_player_name">Editar nombre</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_theme_description">Elegí entre modo claro y oscuro.</string>
     <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_spanish">Español</string>
     <string name="settings_about">Acerca de</string>
+    <string name="settings_app_version">Versión de la app</string>
+    <string name="app_version_format">v%1$s</string>
+    <string name="select_language">Seleccionar idioma</string>
+    <string name="dialog_ok">Aceptar</string>
+    <string name="dialog_cancel">Cancelar</string>
+    <string name="action_back">Atrás</string>
     <string name="about_author">Bruno Tello</string>
-    <string name="about_author_role">Desarrollador de Quoridor</string>
+    <string name="about_description">Mobile developer con 12 años de experiencia, estaba aburrido e hice esto :)\n\nSi te gustó el juego o encontraste algún error, ¡mandame un mensaje por LinkedIn!</string>
+    <string name="about_source_code">Podés ver el código fuente del juego en mi GitHub.</string>
     <string name="about_github">GitHub</string>
     <string name="about_linkedin">LinkedIn</string>
     <string name="about_github_url">https://github.com/brunotello</string>
