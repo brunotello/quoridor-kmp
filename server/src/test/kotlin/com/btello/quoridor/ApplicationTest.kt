@@ -17,4 +17,14 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("Hello, Ktor!", response.bodyAsText())
     }
+
+    @Test
+    fun sayHelloBuildsGreeting() {
+        assertEquals("Hello, Ktor!", sayHello("Ktor"))
+    }
+
+    @Test
+    fun sayHelloHandlesEmptyName() {
+        assertEquals("Hello, !", sayHello(""))
+    }
 }
