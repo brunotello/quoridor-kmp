@@ -23,11 +23,19 @@ Incluye:
 - Tests unitarios del motor de IA (por nivel) y de la orquestación de turnos.
 
 No incluye (aún):
-- IA para partidas de **4 jugadores** (queda como extensión futura del mismo
-  contrato).
 - IA de nivel competitivo con búsqueda profunda (minimax con poda alfa-beta a
   gran profundidad, aprendizaje). `HARD` usa una heurística fuerte pero acotada.
 - Multiplayer online.
+
+> Actualización: el modo **4 jugadores** ya está soportado. Desde "Nueva
+> partida" el modo `FOUR_PLAYERS` abre un submenú donde se elige cuántos de los 4
+> peones controla la IA (0 a 3); el humano principal es siempre `PlayerId(0)` y la
+> IA toma los últimos identificadores. Si hay al menos una IA se elige una única
+> dificultad para todas. Para que colocar muros tenga valor con varios rivales,
+> `positionalScore` suma la distancia de **todos** los oponentes menos la propia
+> (en 2 jugadores hay un único rival, por lo que equivale a `dRival - dSelf` y el
+> comportamiento no cambia), de modo que el mismo contrato de `AiStrategy` aplica
+> a 2 y 4 jugadores.
 
 ## 3) Reglas y comportamiento del modo
 - La IA sólo controla a los jugadores marcados como controlados por máquina. En
