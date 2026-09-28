@@ -53,6 +53,7 @@ internal fun MainScreen(
     var difficultySelection by remember { mutableStateOf<DifficultySelection?>(null) }
     var playerSetupMode by remember { mutableStateOf<GameMode?>(null) }
     var showOnlineLobby by remember { mutableStateOf(false) }
+    var onlineLobbyKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(viewModel) {
         viewModel.sideEffects.collect { effect ->
@@ -69,7 +70,10 @@ internal fun MainScreen(
 
                 is MainSideEffect.NavigateToPlayerSetup -> playerSetupMode = effect.mode
 
-                MainSideEffect.NavigateToOnlineLobby -> showOnlineLobby = true
+                MainSideEffect.NavigateToOnlineLobby -> {
+                    onlineLobbyKey += 1
+                    showOnlineLobby = true
+                }
             }
         }
     }
@@ -117,6 +121,7 @@ internal fun MainScreen(
             MainNav.OnlineLobby -> {
                 AppBackHandler { showOnlineLobby = false }
                 OnlineLobbyScreen(
+                    key = onlineLobbyKey,
                     onStartGame = { setup ->
                         showOnlineLobby = false
                         onNavigateToGame(setup)

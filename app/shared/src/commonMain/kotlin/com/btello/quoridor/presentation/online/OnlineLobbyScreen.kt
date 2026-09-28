@@ -93,7 +93,8 @@ import quoridor.app.shared.generated.resources.online_your_name
 internal fun OnlineLobbyScreen(
     onStartGame: (GameSetup) -> Unit,
     onBack: () -> Unit,
-    viewModel: OnlineLobbyViewModel = viewModel { OnlineLobbyViewModel() },
+    key: Int = 0,
+    viewModel: OnlineLobbyViewModel = viewModel(key = key.toString()) { OnlineLobbyViewModel() },
 ) {
     LaunchedEffect(viewModel) {
         viewModel.sideEffects.collect { effect ->
