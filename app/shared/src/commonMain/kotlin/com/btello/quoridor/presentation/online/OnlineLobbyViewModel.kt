@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.btello.quoridor.AppConfig
 import com.btello.quoridor.data.online.OnlinePlatform
 import com.btello.quoridor.data.player.PlayerNameProvider
 import com.btello.quoridor.data.player.PlayerNameRepository
 import com.btello.quoridor.domain.model.GameConfig
+import com.btello.quoridor.domain.online.IncompatibleVersionException
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.MatchStatus
 import com.btello.quoridor.domain.online.OnlineGameRepository
@@ -40,6 +42,7 @@ internal class OnlineLobbyViewModel(
     private val repository: OnlineGameRepository? = OnlinePlatform.repositoryOrNull(),
     scope: CoroutineScope? = null,
     private val playerNameRepository: PlayerNameRepository = PlayerNameProvider.repository,
+    private val appVersion: String = AppConfig.VERSION,
 ) : ViewModel() {
 
     private val scope: CoroutineScope = scope ?: viewModelScope
@@ -56,6 +59,7 @@ internal class OnlineLobbyViewModel(
 
     private var hostedMatch: MatchId? = null
     private var waitJob: Job? = null
+    private var browseJob: Job? = null
 
     fun onEvent(event: OnlineLobbyEvent) {
         when (event) {
@@ -63,10 +67,14 @@ internal class OnlineLobbyViewModel(
             OnlineLobbyEvent.ConfirmName -> confirmName()
             OnlineLobbyEvent.ChooseCreate -> uiState = uiState.copy(step = OnlineLobbyStep.Create, error = null)
             OnlineLobbyEvent.ChooseJoin -> uiState = uiState.copy(step = OnlineLobbyStep.Join, error = null)
+            OnlineLobbyEvent.ChooseBrowse -> chooseBrowse()
+            OnlineLobbyEvent.RefreshBrowse -> refreshBrowse()
             is OnlineLobbyEvent.PlayerCountChanged -> onPlayerCountChanged(event.count)
+            is OnlineLobbyEvent.VisibilityChanged -> uiState = uiState.copy(isPublic = event.isPublic, error = null)
             OnlineLobbyEvent.CreateMatch -> createMatch()
             is OnlineLobbyEvent.JoinCodeChanged -> onJoinCodeChanged(event.code)
-            OnlineLobbyEvent.JoinMatch -> joinMatch()
+            OnlineLobbyEvent.JoinMatch -> joinByCode()
+            is OnlineLobbyEvent.JoinPublicMatch -> joinMatch(event.id)
             OnlineLobbyEvent.NavigateBack -> navigateBack()
             OnlineLobbyEvent.Cancel -> cancel()
         }
@@ -97,8 +105,57 @@ internal class OnlineLobbyViewModel(
             }
 
             OnlineLobbyStep.Join -> uiState = uiState.copy(step = OnlineLobbyStep.Menu, error = null)
+            OnlineLobbyStep.Browse -> {
+                stopBrowsing()
+                uiState = uiState.copy(step = OnlineLobbyStep.Menu, openMatches = emptyList(), error = null)
+            }
             OnlineLobbyStep.Name, OnlineLobbyStep.Menu -> Unit
         }
+    }
+
+    /** Abre el listado de salas públicas y empieza a observarlas en tiempo real. */
+    private fun chooseBrowse() {
+        waitJob?.cancel()
+        waitJob = null
+        uiState = uiState.copy(step = OnlineLobbyStep.Browse, openMatches = emptyList(), error = null)
+        startBrowsing()
+    }
+
+    /** Reinicia la observación del listado de salas públicas (refrescar). */
+    private fun refreshBrowse() {
+        uiState = uiState.copy(error = null)
+        startBrowsing()
+    }
+
+    /** (Re)lanza la observación en tiempo real de las salas públicas abiertas. */
+    private fun startBrowsing() {
+        val repo = repository ?: run {
+            uiState = uiState.copy(error = OnlineLobbyError.Unsupported)
+            return
+        }
+        uiState = uiState.copy(phase = OnlineLobbyPhase.Idle)
+        browseJob?.cancel()
+        browseJob = scope.launch {
+            repo.observeOpenMatches(appVersion).collect { matches ->
+                uiState = uiState.copy(
+                    openMatches = matches.map { match ->
+                        OnlineOpenMatch(
+                            id = match.id,
+                            hostName = match.hostName,
+                            joinedCount = match.joinedCount,
+                            playerCount = match.config.playerCount,
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    /** Detiene la observación del listado de salas públicas. */
+    private fun stopBrowsing() {
+        browseJob?.cancel()
+        browseJob = null
+        uiState = uiState.copy(phase = OnlineLobbyPhase.Idle)
     }
 
     private fun onPlayerCountChanged(count: Int) {
@@ -117,9 +174,10 @@ internal class OnlineLobbyViewModel(
         if (!uiState.canCreate) return
         val name = persistName()
         val playerCount = uiState.playerCount
+        val isPublic = uiState.isPublic
         uiState = uiState.copy(phase = OnlineLobbyPhase.Creating, error = null)
         scope.launch {
-            val id = repo.createMatch(GameConfig(playerCount = playerCount), name)
+            val id = repo.createMatch(GameConfig(playerCount = playerCount), name, appVersion, isPublic)
             hostedMatch = id
             uiState = uiState.copy(
                 phase = OnlineLobbyPhase.WaitingForOpponent,
@@ -140,18 +198,24 @@ internal class OnlineLobbyViewModel(
         }
     }
 
-    private fun joinMatch() {
+    private fun joinByCode() {
+        val code = uiState.joinCode.trim()
+        if (code.isEmpty()) return
+        joinMatch(MatchId(code))
+    }
+
+    private fun joinMatch(id: MatchId) {
         val repo = repository ?: run {
             uiState = uiState.copy(error = OnlineLobbyError.Unsupported)
             return
         }
         if (!uiState.canJoin) return
         val name = persistName()
-        val id = MatchId(uiState.joinCode)
         uiState = uiState.copy(phase = OnlineLobbyPhase.Joining, error = null)
         scope.launch {
-            repo.joinMatch(id, name).fold(
+            repo.joinMatch(id, name, appVersion).fold(
                 onSuccess = { slot ->
+                    stopBrowsing()
                     val playerCount = repo.observeMatch(id).first().config.playerCount
                     emitStart(id, slot, playerCount)
                 },
@@ -183,10 +247,14 @@ internal class OnlineLobbyViewModel(
 
     private fun cancel() {
         resetHosting()
+        stopBrowsing()
+        waitJob?.cancel()
+        waitJob = null
         uiState = uiState.copy(
             step = OnlineLobbyStep.Create,
             phase = OnlineLobbyPhase.Idle,
             hostedCode = null,
+            openMatches = emptyList(),
             joinedCount = 1,
             error = null,
         )
@@ -212,6 +280,7 @@ private fun initialStep(name: String): OnlineLobbyStep =
 /** Traduce la excepción de una unión fallida a un [OnlineLobbyError] mostrable. */
 private fun Throwable.toLobbyError(): OnlineLobbyError = when (this) {
     is NoSuchElementException -> OnlineLobbyError.NotFound
+    is IncompatibleVersionException -> OnlineLobbyError.IncompatibleVersion
     is IllegalStateException -> OnlineLobbyError.NotJoinable
     else -> OnlineLobbyError.Connection
 }

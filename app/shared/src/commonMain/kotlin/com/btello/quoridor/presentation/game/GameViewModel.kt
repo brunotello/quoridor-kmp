@@ -57,6 +57,19 @@ internal class GameViewModel(
     private val isOnline = onlineSession != null
     private val localPlayerId = onlineSession?.localPlayerId
 
+    /**
+     * Jugador que controla este dispositivo, usado para decidir si la partida se
+     * ganó o se perdió. En online es el asiento local; contra IA es el único
+     * humano; en partida local compartida no hay perspectiva local (`null`).
+     */
+    private val localHumanId: PlayerId? = when {
+        isOnline -> localPlayerId
+        else -> (0 until setup.config.playerCount)
+            .map { PlayerId(it) }
+            .filterNot { it in setup.aiPlayers }
+            .singleOrNull()
+    }
+
     /** Versión (nº de jugada) sincronizada de la partida online. */
     private var onlineVersion: Long = 0
     private var onlineStatus: MatchStatus? = if (isOnline) MatchStatus.WAITING else null
@@ -136,6 +149,7 @@ internal class GameViewModel(
             GameEvent.WallReserveClick -> if (!isHumanInputBlocked()) onWallReserveClick()
             is GameEvent.CellClick -> if (!isHumanInputBlocked()) onCellClick(event.cell)
             is GameEvent.WallClick -> if (!isHumanInputBlocked()) onWallClick(event.wall)
+            GameEvent.LeaveMatch -> onLeaveMatch()
             GameEvent.NewGame -> {
                 aiJob?.cancel()
                 onlineJob?.cancel()
@@ -143,6 +157,29 @@ internal class GameViewModel(
                 _sideEffects.trySend(GameSideEffect.NavigateToMenu)
             }
         }
+    }
+
+    /**
+     * El jugador local abandona la partida. En online se lo quita del estado con
+     * [QuoridorRules.withPlayerRemoved] y se publica el nuevo estado para el resto:
+     * si sólo queda un rival (1v1), este gana y la partida termina; si quedan dos o
+     * más (4 jugadores), la partida sigue sin el que se fue. En local sólo se sale
+     * al menú. En todos los casos se cancelan los trabajos en curso y se navega al
+     * menú.
+     */
+    private fun onLeaveMatch() {
+        aiJob?.cancel()
+        onlineJob?.cancel()
+        if (isOnline && !QuoridorRules.isGameOver(gameState)) {
+            localPlayerId?.let { playerId ->
+                gameState = QuoridorRules.withPlayerRemoved(gameState, playerId)
+                if (QuoridorRules.isGameOver(gameState)) {
+                    feedback = GameFeedback.GameOver
+                }
+                publishOnlineMove()
+            }
+        }
+        _sideEffects.trySend(GameSideEffect.NavigateToMenu)
     }
 
     private fun onActivePawnClick() {
@@ -319,10 +356,23 @@ internal class GameViewModel(
             isAiThinking = isAiThinking,
             aiPlayers = aiPlayers,
             winnerNumber = gameState.winner?.value?.plus(1),
+            localResult = localResult(isAbandoned),
             playerNames = if (isOnline) onlinePlayerNames else emptyList(),
             localPlayerId = localPlayerId,
             turnBanner = turnBanner(isGameOver),
         )
+    }
+
+    /**
+     * Resultado de la partida desde la perspectiva del jugador local. Es `null`
+     * si no hay un jugador local (partida local compartida) o si la partida sigue
+     * en curso. Un abandono del rival cuenta como victoria local.
+     */
+    private fun localResult(isAbandoned: Boolean): GameResult? {
+        val localId = localHumanId ?: return null
+        if (isAbandoned) return GameResult.WON
+        val winner = gameState.winner ?: return null
+        return if (winner == localId) GameResult.WON else GameResult.LOST
     }
 
     /** Indicador de turno online mostrado sobre el tablero (sólo con la partida en curso). */

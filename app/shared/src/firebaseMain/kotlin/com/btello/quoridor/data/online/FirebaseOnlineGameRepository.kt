@@ -2,6 +2,7 @@ package com.btello.quoridor.data.online
 
 import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.GameState
+import com.btello.quoridor.domain.online.IncompatibleVersionException
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.MatchStatus
 import com.btello.quoridor.domain.online.OnlineGameRepository
@@ -32,7 +33,12 @@ internal class FirebaseOnlineGameRepository(
     private val database: FirebaseDatabase = Firebase.database,
 ) : OnlineGameRepository {
 
-    override suspend fun createMatch(config: GameConfig, hostName: String): MatchId {
+    override suspend fun createMatch(
+        config: GameConfig,
+        hostName: String,
+        appVersion: String,
+        isPublic: Boolean,
+    ): MatchId {
         val id = MatchId(generateCode())
         val ref = matchRef(id)
         val match = OnlineMatch(
@@ -43,17 +49,37 @@ internal class FirebaseOnlineGameRepository(
             version = 0,
             playerNames = listOf(hostName),
             presence = listOf(true),
+            isPublic = isPublic,
+            appVersion = appVersion,
         )
         ref.setValue(OnlineMatch.serializer(), match) { encodeDefaults = true }
-        ref.child(FIELD_PRESENCE).child(PlayerSlot.HOST.index.toString()).onDisconnect().setValue(false)
+        armAbandonOnDisconnect(ref, PlayerSlot.HOST)
         return id
     }
 
-    override suspend fun joinMatch(id: MatchId, playerName: String): Result<PlayerSlot> = runCatching {
+    override fun observeOpenMatches(appVersion: String): Flow<List<OnlineMatch>> =
+        matchesRef().valueEvents.map { snapshot ->
+            snapshot.children
+                .map { it.value(OnlineMatch.serializer()) }
+                .filter { it.isOpenToPublic && it.isCompatibleWith(appVersion) }
+                .sortedBy { it.id.value }
+        }
+
+    override suspend fun joinMatch(
+        id: MatchId,
+        playerName: String,
+        appVersion: String,
+    ): Result<PlayerSlot> = runCatching {
         val ref = matchRef(id)
         val current = readMatch(ref) ?: throw NoSuchElementException("Match $id not found")
         check(current.status == MatchStatus.WAITING) { "Match $id is not joinable" }
         check(!current.isFull) { "Match $id is full" }
+        if (!current.isCompatibleWith(appVersion)) {
+            throw IncompatibleVersionException(
+                requiredVersion = current.appVersion,
+                localVersion = appVersion,
+            )
+        }
         val slot = PlayerSlot(current.joinedCount)
         val names = current.playerNames + playerName
         val presence = current.presence + true
@@ -64,7 +90,7 @@ internal class FirebaseOnlineGameRepository(
             presence = presence,
         )
         ref.setValue(OnlineMatch.serializer(), updated) { encodeDefaults = true }
-        ref.child(FIELD_PRESENCE).child(slot.index.toString()).onDisconnect().setValue(false)
+        armAbandonOnDisconnect(ref, slot)
         slot
     }
 
@@ -81,19 +107,44 @@ internal class FirebaseOnlineGameRepository(
         val ref = matchRef(id)
         val current = readMatch(ref) ?: throw NoSuchElementException("Match $id not found")
         check(expectedVersion > current.version) { "Stale move for match $id" }
-        val status = if (QuoridorRules.isGameOver(newState)) MatchStatus.FINISHED else current.status
+        val gameOver = QuoridorRules.isGameOver(newState)
+        val status = if (gameOver) MatchStatus.FINISHED else current.status
         val updated = current.copy(state = newState, version = expectedVersion, status = status)
         ref.setValue(OnlineMatch.serializer(), updated) { encodeDefaults = true }
+        if (gameOver) {
+            cancelAbandonOnDisconnect(ref, current.presence.indices)
+        }
     }
 
     override suspend fun leaveMatch(id: MatchId, slot: PlayerSlot) {
         val ref = matchRef(id)
         runCatching {
+            cancelAbandonOnDisconnect(ref, listOf(slot.index))
             ref.child(FIELD_PRESENCE).child(slot.index.toString()).setValue(false)
             val current = readMatch(ref)
-            if (current != null && current.status == MatchStatus.IN_PROGRESS) {
+            if (current != null &&
+                (current.status == MatchStatus.WAITING || current.status == MatchStatus.IN_PROGRESS)
+            ) {
                 ref.child(FIELD_STATUS).setValue(MatchStatus.ABANDONED)
             }
+        }
+    }
+
+    /**
+     * Programa que, ante una caída de conexión (crash, cierre abrupto), la sala
+     * quede marcada como [MatchStatus.ABANDONED]. Así la partida termina para el
+     * rival y deja de anunciarse en el lobby aunque el dispositivo no pueda avisar.
+     */
+    private suspend fun armAbandonOnDisconnect(ref: DatabaseReference, slot: PlayerSlot) {
+        ref.child(FIELD_PRESENCE).child(slot.index.toString()).onDisconnect().setValue(false)
+        ref.child(FIELD_STATUS).onDisconnect().setValue(MatchStatus.ABANDONED)
+    }
+
+    /** Cancela el marcado automático de abandono (salida normal o fin de partida). */
+    private suspend fun cancelAbandonOnDisconnect(ref: DatabaseReference, slots: Iterable<Int>) {
+        ref.child(FIELD_STATUS).onDisconnect().cancel()
+        slots.forEach { index ->
+            ref.child(FIELD_PRESENCE).child(index.toString()).onDisconnect().cancel()
         }
     }
 
@@ -104,6 +155,9 @@ internal class FirebaseOnlineGameRepository(
 
     private fun matchRef(id: MatchId): DatabaseReference =
         database.reference("$MATCHES_PATH/${id.value}")
+
+    private fun matchesRef(): DatabaseReference =
+        database.reference(MATCHES_PATH)
 
     private fun generateCode(): String =
         (1..CODE_LENGTH).map { CODE_ALPHABET[Random.nextInt(CODE_ALPHABET.length)] }.joinToString("")

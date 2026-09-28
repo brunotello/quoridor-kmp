@@ -1,12 +1,15 @@
 package com.btello.quoridor.presentation.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /**
  * Punto de acceso a los valores de tema propios de Quoridor.
@@ -21,11 +24,17 @@ internal object QuoridorTheme {
 private val QuoridorDarkColorScheme = darkColorScheme(
     primary = blue_0,
     secondary = pink_200,
+    primaryContainer = pink_200,
 )
 
 private val QuoridorLightColorScheme = lightColorScheme(
     primary = blue_100,
     secondary = pink_500,
+    primaryContainer = pink_500,
+)
+
+private val QuoridorShapes = Shapes(
+    extraLarge = RoundedCornerShape(0.dp),
 )
 
 /**
@@ -40,6 +49,7 @@ internal fun QuoridorTheme(
         MaterialTheme(
             colorScheme = if (darkTheme) QuoridorDarkColorScheme else QuoridorLightColorScheme,
             typography = QuoridorTypography,
+            shapes = QuoridorShapes,
             content = content,
         )
     }

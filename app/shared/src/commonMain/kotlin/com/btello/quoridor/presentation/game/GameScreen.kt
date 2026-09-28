@@ -21,12 +21,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +65,11 @@ import quoridor.app.shared.generated.resources.feedback_invalid_move
 import quoridor.app.shared.generated.resources.feedback_invalid_wall
 import quoridor.app.shared.generated.resources.feedback_no_legal_walls
 import quoridor.app.shared.generated.resources.feedback_no_walls_remaining
+import quoridor.app.shared.generated.resources.game_leave_confirm
+import quoridor.app.shared.generated.resources.game_leave_dismiss
+import quoridor.app.shared.generated.resources.game_leave_message_continue
+import quoridor.app.shared.generated.resources.game_leave_message_lose
+import quoridor.app.shared.generated.resources.game_leave_title
 import quoridor.app.shared.generated.resources.game_over
 import quoridor.app.shared.generated.resources.online_opponent_left
 import quoridor.app.shared.generated.resources.online_turn_of
@@ -88,6 +95,12 @@ internal fun GameScreen(
         )
     },
 ) {
+    val isOnline = setup.online != null
+    var confirmingLeave by remember { mutableStateOf(false) }
+    val onBackRequested: () -> Unit = {
+        if (isOnline) confirmingLeave = true else viewModel.onEvent(GameEvent.LeaveMatch)
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.sideEffects.collect { effect ->
             when (effect) {
@@ -96,20 +109,33 @@ internal fun GameScreen(
         }
     }
 
-    AppBackHandler { onNavigateToMenu() }
+    AppBackHandler { onBackRequested() }
 
     val state = viewModel.uiState
     if (state.isGameOver) {
         GameResultScreen(
             winnerNumber = state.winnerNumber ?: 1,
-            onNewGame = { viewModel.onEvent(GameEvent.NewGame) },
+            onBackToMenu = { viewModel.onEvent(GameEvent.NewGame) },
+            result = state.localResult,
             isAbandoned = state.isAbandoned,
+            onContinue = if (isOnline) { { viewModel.onEvent(GameEvent.NewGame) } } else null,
         )
     } else {
         GameContent(
             state = state,
             onEvent = viewModel::onEvent,
-            onBack = onNavigateToMenu,
+            onBack = onBackRequested,
+        )
+    }
+
+    if (confirmingLeave) {
+        LeaveMatchConfirmDialog(
+            losesMatch = state.gameState.players.size <= 2,
+            onConfirm = {
+                confirmingLeave = false
+                viewModel.onEvent(GameEvent.LeaveMatch)
+            },
+            onDismiss = { confirmingLeave = false },
         )
     }
 }
@@ -203,14 +229,57 @@ private fun GameContent(
                     text = turnBannerText(banner),
                     style = MaterialTheme.typography.headlineSmall,
                     color = playerColor(turnBannerPlayerId(banner, state.localPlayerId)),
-                    textAlign = TextAlign.Start,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 16.dp, top = 56.dp),
+                        .align(Alignment.TopCenter)
+                        .padding(start = 16.dp, end = 16.dp, top = 56.dp),
                 )
             }
         }
     }
+}
+
+@Composable
+private fun LeaveMatchConfirmDialog(
+    losesMatch: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(Res.string.game_leave_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        text = {
+            Text(
+                text = if (losesMatch) {
+                    stringResource(Res.string.game_leave_message_lose)
+                } else {
+                    stringResource(Res.string.game_leave_message_continue)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = stringResource(Res.string.game_leave_confirm),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(Res.string.game_leave_dismiss),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -372,6 +441,22 @@ private fun Modifier.turnShimmer(active: Boolean): Modifier {
             drawContent()
             drawRect(brush)
         }
+    }
+}
+
+@Preview
+@Composable
+private fun LeaveMatchConfirmDialogPreview() {
+    QuoridorTheme {
+        LeaveMatchConfirmDialog(losesMatch = true, onConfirm = {}, onDismiss = {})
+    }
+}
+
+@Preview
+@Composable
+private fun LeaveMatchContinueDialogPreview() {
+    QuoridorTheme {
+        LeaveMatchConfirmDialog(losesMatch = false, onConfirm = {}, onDismiss = {})
     }
 }
 

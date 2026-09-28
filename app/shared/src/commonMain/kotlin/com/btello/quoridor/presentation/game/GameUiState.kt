@@ -23,10 +23,24 @@ internal data class GameUiState(
     val isAiThinking: Boolean = false,
     val aiPlayers: Set<PlayerId> = emptySet(),
     val winnerNumber: Int? = null,
+    val localResult: GameResult? = null,
     val playerNames: List<String> = emptyList(),
     val localPlayerId: PlayerId? = null,
     val turnBanner: TurnBanner? = null,
 )
+
+/**
+ * Resultado de la partida desde la perspectiva del jugador de este dispositivo.
+ * Es `null` cuando no hay una perspectiva local (p. ej. partida local a dos
+ * jugadores en el mismo dispositivo), en cuyo caso sólo se anuncia al ganador.
+ */
+internal enum class GameResult {
+    /** El jugador local ganó la partida. */
+    WON,
+
+    /** El jugador local perdió la partida. */
+    LOST,
+}
 
 /**
  * Indicador de turno de una partida online, mostrado como texto sobre el tablero.

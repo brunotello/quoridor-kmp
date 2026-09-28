@@ -5,6 +5,8 @@ import com.btello.quoridor.domain.rules.QuoridorRules
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class OnlineMatchSerializationTest {
 
@@ -38,5 +40,75 @@ class OnlineMatchSerializationTest {
     fun `match id serializes as its raw string value`() {
         val encoded = json.encodeToString(MatchId.serializer(), MatchId("ABC123"))
         assertEquals("\"ABC123\"", encoded)
+    }
+
+    @Test
+    fun `public flag round-trips through json`() {
+        val config = GameConfig(playerCount = 2)
+        val match = OnlineMatch(
+            id = MatchId("ROOM01"),
+            config = config,
+            status = MatchStatus.WAITING,
+            state = QuoridorRules.startGame(config),
+            version = 0,
+            playerNames = listOf("Ana"),
+            presence = listOf(true),
+            isPublic = true,
+        )
+
+        val decoded = json.decodeFromString(
+            OnlineMatch.serializer(),
+            json.encodeToString(OnlineMatch.serializer(), match),
+        )
+
+        assertTrue(decoded.isPublic)
+    }
+
+    @Test
+    fun `app version round-trips and drives compatibility`() {
+        val config = GameConfig(playerCount = 2)
+        val match = OnlineMatch(
+            id = MatchId("ROOM01"),
+            config = config,
+            status = MatchStatus.WAITING,
+            state = QuoridorRules.startGame(config),
+            version = 0,
+            playerNames = listOf("Ana"),
+            presence = listOf(true),
+            isPublic = true,
+            appVersion = "2.4.1",
+        )
+
+        val decoded = json.decodeFromString(
+            OnlineMatch.serializer(),
+            json.encodeToString(OnlineMatch.serializer(), match),
+        )
+
+        assertEquals("2.4.1", decoded.appVersion)
+        assertTrue(decoded.isCompatibleWith("2.4.1"))
+        assertFalse(decoded.isCompatibleWith("2.4.0"))
+    }
+
+    @Test
+    fun `is open to public only when public, waiting and not full`() {
+        val config = GameConfig(playerCount = 2)
+        val waiting = OnlineMatch(
+            id = MatchId("ROOM01"),
+            config = config,
+            status = MatchStatus.WAITING,
+            state = QuoridorRules.startGame(config),
+            version = 0,
+            playerNames = listOf("Ana"),
+            presence = listOf(true),
+            isPublic = true,
+        )
+        assertTrue(waiting.isOpenToPublic)
+        assertEquals("Ana", waiting.hostName)
+
+        assertFalse(waiting.copy(isPublic = false).isOpenToPublic)
+        assertFalse(waiting.copy(status = MatchStatus.IN_PROGRESS).isOpenToPublic)
+        assertFalse(
+            waiting.copy(playerNames = listOf("Ana", "Beto"), presence = listOf(true, true)).isOpenToPublic,
+        )
     }
 }

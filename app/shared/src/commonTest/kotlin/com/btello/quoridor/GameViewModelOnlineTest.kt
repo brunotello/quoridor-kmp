@@ -44,7 +44,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `host waiting for opponent surfaces waiting feedback and blocks input`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Host")
+        val id = repo.createMatch(config, "Host", AppConfig.VERSION)
         val scope = onlineScope()
         val vm = GameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
@@ -62,7 +62,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `guest input is blocked and turn banner shows the host name`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Ana")
+        val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
         val vm = GameViewModel(
@@ -83,7 +83,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `guest adopts a remote host move and then can play`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Ana")
+        val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
         val vm = GameViewModel(
@@ -117,7 +117,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `host move is published with an incremented version`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Ana")
+        val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
         val vm = GameViewModel(
@@ -139,7 +139,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `opponent leaving ends the game for everyone`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Ana")
+        val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
         val vm = GameViewModel(
@@ -162,7 +162,7 @@ class GameViewModelOnlineTest {
     @Test
     fun `leaving the match on new game marks it abandoned for the rival`() = runTest {
         val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(config, "Ana")
+        val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
         val vm = GameViewModel(

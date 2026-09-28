@@ -6,8 +6,18 @@
     <string name="board_summary">9x9 board • %1$d players</string>
     <string name="start_game">Start game</string>
     <string name="game_over">Game over</string>
+    <string name="game_you_won">You won!</string>
+    <string name="game_you_lost">You lost</string>
+    <string name="game_result_trophy_emoji">🏆</string>
+    <string name="game_result_sad_emoji">😢</string>
     <string name="winner">Winner: Player %1$d</string>
     <string name="new_game">New game</string>
+    <string name="game_back_to_menu">Back to menu</string>
+    <string name="game_leave_title">Leave the match?</string>
+    <string name="game_leave_message_lose">If you leave, you lose the match and your opponent wins.</string>
+    <string name="game_leave_message_continue">If you leave, you will exit the match and the others will keep playing.</string>
+    <string name="game_leave_confirm">Leave</string>
+    <string name="game_leave_dismiss">Cancel</string>
     <string name="player_name">Player %1$d</string>
     <string name="pawn_label">%1$d</string>
     <string name="feedback_no_walls_remaining">No walls remaining.</string>
@@ -100,9 +110,17 @@
     <string name="online_your_name">Your name</string>
     <string name="online_name_headline">Enter your name</string>
     <string name="online_continue">Continue</string>
-    <string name="online_menu_headline">What would you like to do?</string>
+    <string name="online_menu_headline">Online</string>
     <string name="online_create_description">Create a room and share the code with your rivals.</string>
     <string name="online_join_description">Enter a room code to join.</string>
+    <string name="online_browse_match">Find matches</string>
+    <string name="online_browse_description">Browse public rooms and join without entering a code.</string>
+    <string name="online_browse_empty">No public matches available right now.</string>
+    <string name="online_browse_refresh">Refresh</string>
+    <string name="online_public_label">Public room</string>
+    <string name="online_public_description">Public rooms show up in the list so anyone can join without a code.</string>
+    <string name="online_open_match_host">%1$s's room</string>
+    <string name="online_open_match_players">%1$d/%2$d players</string>
     <string name="online_player_count">Players</string>
     <string name="online_create_match">Create match</string>
     <string name="online_join_hint">Room code</string>
@@ -116,6 +134,7 @@
     <string name="online_cancel">Cancel</string>
     <string name="online_error_not_found">No room found for that code.</string>
     <string name="online_error_not_joinable">That room is no longer available.</string>
+    <string name="online_error_incompatible_version">That room uses a different app version. Update to play together.</string>
     <string name="online_error_connection">Couldn't connect. Check your connection and try again.</string>
     <string name="online_error_unsupported">Online mode isn't available on this platform.</string>
 

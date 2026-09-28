@@ -6,8 +6,19 @@
     <string name="board_summary">Tablero 9x9 • %1$d jugadores</string>
     <string name="start_game">Iniciar partida</string>
     <string name="game_over">Partida finalizada</string>
+    <string name="game_you_won">¡Ganaste!</string>
+    <string name="game_you_lost">Perdiste</string>
+    <string name="game_result_trophy_emoji">🏆</string>
+    <string name="game_result_sad_emoji">😢</string>
     <string name="winner">Ganador: Jugador %1$d</string>
+    <string name="game_result_opponent_left">Tu rival abandonó la partida.</string>
     <string name="new_game">Nueva partida</string>
+    <string name="game_back_to_menu">Volver al menú</string>
+    <string name="game_leave_title">¿Abandonar la partida?</string>
+    <string name="game_leave_message_lose">Si abandonás, perdés la partida y gana tu rival.</string>
+    <string name="game_leave_message_continue">Si abandonás, saldrás de la partida y el resto seguirá jugando.</string>
+    <string name="game_leave_confirm">Abandonar</string>
+    <string name="game_leave_dismiss">Cancelar</string>
     <string name="player_name">Jugador %1$d</string>
     <string name="ai_player_name">IA</string>
     <string name="pawn_label">%1$d</string>
@@ -89,10 +100,19 @@
     <string name="online_menu_headline">¿Qué querés hacer?</string>
     <string name="online_create_description">Crea una sala y comparte el código con tus rivales.</string>
     <string name="online_join_description">Ingresa el código de una sala para unirte.</string>
+    <string name="online_browse_match">Buscar partidas</string>
+    <string name="online_browse_description">Explora las salas públicas y únete sin ingresar un código.</string>
+    <string name="online_browse_empty">No hay partidas públicas disponibles por ahora.</string>
+    <string name="online_browse_refresh">Refrescar</string>
+    <string name="online_public_label">Sala pública</string>
+    <string name="online_public_description">Las salas públicas aparecen en la lista para que cualquiera se una sin código.</string>
+    <string name="online_open_match_host">Sala de %1$s</string>
+    <string name="online_open_match_players">%1$d/%2$d jugadores</string>
     <string name="online_player_count">Jugadores</string>
     <string name="online_create_match">Crear partida</string>
     <string name="online_join_hint">Código de sala</string>
     <string name="online_join_match">Unirse</string>
+    <string name="online_copy_code">Copiar código</string>
     <string name="online_share_code">Comparte este código con tus rivales:</string>
     <string name="online_waiting_opponent">Esperando a los jugadores…</string>
     <string name="online_waiting_players">Jugadores conectados: %1$d/%2$d</string>
@@ -102,6 +122,7 @@
     <string name="online_cancel">Cancelar</string>
     <string name="online_error_not_found">No se encontró una sala con ese código.</string>
     <string name="online_error_not_joinable">Esa sala ya no está disponible.</string>
+    <string name="online_error_incompatible_version">Esa sala usa otra versión de la app. Actualiza para poder jugar juntos.</string>
     <string name="online_error_connection">No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="online_error_unsupported">El modo online no está disponible en esta plataforma.</string>
 
