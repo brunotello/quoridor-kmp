@@ -27,9 +27,13 @@ import com.btello.quoridor.presentation.online.OnlineErrorText
 import com.btello.quoridor.presentation.online.OnlineOpenMatch
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.OnlineStepScaffold
+import com.btello.quoridor.presentation.online.seriesFormatLabel
+import com.btello.quoridor.presentation.online.timeControlSecondsLabel
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
+import quoridor.app.shared.generated.resources.competitive_config_series
+import quoridor.app.shared.generated.resources.competitive_config_timer
 import quoridor.app.shared.generated.resources.online_browse_empty
 import quoridor.app.shared.generated.resources.online_browse_match
 import quoridor.app.shared.generated.resources.online_browse_refresh
@@ -132,6 +136,22 @@ private fun OpenMatchCard(
                     match.playerCount,
                 ),
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    Res.string.competitive_config_series,
+                    seriesFormatLabel(match.format),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    Res.string.competitive_config_timer,
+                    timeControlSecondsLabel(match.timeControlSeconds),
+                ),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

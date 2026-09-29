@@ -84,6 +84,10 @@ value class PlayerSlot(val index: Int) {
  * unirse dispositivos con la misma versión: el estado sincronizado depende del
  * formato de datos y las reglas de esa versión, así que mezclar versiones podría
  * corromper la partida.
+ *
+ * [competitive] transporta la configuración y el marcador en vivo del modo
+ * competitivo (serie al mejor de N y/o temporizador). Por defecto es un único
+ * juego sin reloj, equivalente al comportamiento clásico.
  */
 @Serializable
 data class OnlineMatch(
@@ -96,6 +100,7 @@ data class OnlineMatch(
     val presence: List<Boolean> = emptyList(),
     val isPublic: Boolean = false,
     val appVersion: String = "",
+    val competitive: CompetitiveState = CompetitiveState(),
 ) {
     /** `true` cuando la sala fue creada con la misma versión de app [version]. */
     fun isCompatibleWith(version: String): Boolean = appVersion == version

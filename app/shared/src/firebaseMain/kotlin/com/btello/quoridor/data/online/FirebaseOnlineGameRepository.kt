@@ -2,6 +2,8 @@ package com.btello.quoridor.data.online
 
 import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.GameState
+import com.btello.quoridor.domain.online.CompetitiveConfig
+import com.btello.quoridor.domain.online.CompetitiveState
 import com.btello.quoridor.domain.online.IncompatibleVersionException
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.MatchStatus
@@ -38,6 +40,7 @@ internal class FirebaseOnlineGameRepository(
         hostName: String,
         appVersion: String,
         isPublic: Boolean,
+        competitive: CompetitiveConfig,
     ): MatchId {
         val id = MatchId(generateCode())
         val ref = matchRef(id)
@@ -51,6 +54,7 @@ internal class FirebaseOnlineGameRepository(
             presence = listOf(true),
             isPublic = isPublic,
             appVersion = appVersion,
+            competitive = CompetitiveState.initial(config.playerCount, competitive),
         )
         ref.setValue(OnlineMatch.serializer(), match) { encodeDefaults = true }
         armAbandonOnDisconnect(ref, PlayerSlot.HOST)
@@ -60,7 +64,9 @@ internal class FirebaseOnlineGameRepository(
     override fun observeOpenMatches(appVersion: String): Flow<List<OnlineMatch>> =
         matchesRef().valueEvents.map { snapshot ->
             snapshot.children
-                .map { it.value(OnlineMatch.serializer()) }
+                .mapNotNull { child ->
+                    runCatching { child.value(OnlineMatch.serializer()) }.getOrNull()
+                }
                 .filter { it.isOpenToPublic && it.isCompatibleWith(appVersion) }
                 .sortedBy { it.id.value }
         }
@@ -84,8 +90,14 @@ internal class FirebaseOnlineGameRepository(
         val names = current.playerNames + playerName
         val presence = current.presence + true
         val willBeFull = names.size >= current.config.playerCount
+        val state = if (willBeFull) {
+            QuoridorRules.withRandomStartingPlayer(current.state, Random)
+        } else {
+            current.state
+        }
         val updated = current.copy(
             status = if (willBeFull) MatchStatus.IN_PROGRESS else MatchStatus.WAITING,
+            state = state,
             playerNames = names,
             presence = presence,
         )
@@ -102,16 +114,22 @@ internal class FirebaseOnlineGameRepository(
     override suspend fun submitMove(
         id: MatchId,
         newState: GameState,
+        competitive: CompetitiveState,
         expectedVersion: Long,
     ): Result<Unit> = runCatching {
         val ref = matchRef(id)
         val current = readMatch(ref) ?: throw NoSuchElementException("Match $id not found")
         check(expectedVersion > current.version) { "Stale move for match $id" }
-        val gameOver = QuoridorRules.isGameOver(newState)
-        val status = if (gameOver) MatchStatus.FINISHED else current.status
-        val updated = current.copy(state = newState, version = expectedVersion, status = status)
+        val seriesOver = QuoridorRules.isGameOver(newState) && competitive.isSeriesOver
+        val status = if (seriesOver) MatchStatus.FINISHED else current.status
+        val updated = current.copy(
+            state = newState,
+            competitive = competitive,
+            version = expectedVersion,
+            status = status,
+        )
         ref.setValue(OnlineMatch.serializer(), updated) { encodeDefaults = true }
-        if (gameOver) {
+        if (seriesOver) {
             cancelAbandonOnDisconnect(ref, current.presence.indices)
         }
     }

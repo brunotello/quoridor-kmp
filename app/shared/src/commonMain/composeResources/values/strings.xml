@@ -119,6 +119,7 @@
     <string name="online_turn_of">Turno de %1$s</string>
     <string name="online_your_turn">Tu turno</string>
     <string name="online_opponent_left">Un jugador abandonó la partida.</string>
+    <string name="match_starting">¡Comienza el juego!</string>
     <string name="board_zoom_hint">Pellizca con dos dedos en el tablero para hacer zoom</string>
     <string name="board_wall_hint">Toca los muros del panel de tu jugador para colocar uno</string>
     <string name="online_cancel">Cancelar</string>
@@ -128,6 +129,24 @@
     <string name="online_error_connection">No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="online_error_unsupported">El modo online no está disponible en esta plataforma.</string>
     <string name="online_error_join_timeout">No se pudo unir a la partida. Inténtalo nuevamente.</string>
+
+    <!-- Modo competitivo online -->
+    <string name="competitive_format_label">Modo de la serie</string>
+    <string name="competitive_format_single">1 juego</string>
+    <string name="competitive_format_first_to_3">Primero a 3 ganadas</string>
+    <string name="competitive_format_first_to_5">Primero a 5 ganadas</string>
+    <string name="competitive_timer_label">Temporizador</string>
+    <string name="competitive_timer_off">Sin límite</string>
+    <string name="competitive_timer_minutes">%1$d min</string>
+    <string name="competitive_series_score">%1$d - %2$d</string>
+    <string name="competitive_series_wins">%1$d/%2$d</string>
+    <string name="competitive_series_game_over">Fin del juego</string>
+    <string name="competitive_series_continue">Siguiente juego</string>
+    <string name="competitive_series_waiting">Esperando a que el rival continúe…</string>
+    <string name="competitive_series_won">¡Ganaste la serie!</string>
+    <string name="competitive_series_lost">Perdiste la serie</string>
+    <string name="competitive_config_series">Serie: %1$s</string>
+    <string name="competitive_config_timer">Reloj: %1$s</string>
 
     <!-- Reglas -->
     <string name="rules_title">Reglas del juego</string>

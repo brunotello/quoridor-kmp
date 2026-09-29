@@ -1,7 +1,10 @@
 package com.btello.quoridor
 
+import com.btello.quoridor.domain.model.GameConfig
+import com.btello.quoridor.domain.online.CompetitiveConfig
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.PlayerSlot
+import com.btello.quoridor.domain.online.SeriesFormat
 import com.btello.quoridor.presentation.online.OnlineError
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.find.FindMatchesOnlineEvent
@@ -106,6 +109,26 @@ class FindMatchesOnlineViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("PUB001"), vm.uiState.openMatches.map { it.id.value })
+        coroutineContext.cancelChildren()
+    }
+
+    @Test
+    fun `browsing shows the competitive configuration of open matches`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        repo.createMatch(
+            GameConfig(playerCount = 2),
+            "Beto",
+            AppConfig.VERSION,
+            isPublic = true,
+            competitive = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3, timeControlSeconds = 300),
+        )
+        val vm = viewModel(repo, this)
+
+        advanceUntilIdle()
+
+        val open = vm.uiState.openMatches.single()
+        assertEquals(SeriesFormat.FIRST_TO_3, open.format)
+        assertEquals(300, open.timeControlSeconds)
         coroutineContext.cancelChildren()
     }
 

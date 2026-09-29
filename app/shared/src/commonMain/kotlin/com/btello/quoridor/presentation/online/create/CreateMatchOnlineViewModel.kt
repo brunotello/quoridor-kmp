@@ -10,6 +10,7 @@ import com.btello.quoridor.data.online.OnlinePlatform
 import com.btello.quoridor.data.player.PlayerNameProvider
 import com.btello.quoridor.data.player.PlayerNameRepository
 import com.btello.quoridor.domain.model.GameConfig
+import com.btello.quoridor.domain.online.CompetitiveConfig
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.MatchStatus
 import com.btello.quoridor.domain.online.OnlineGameRepository
@@ -65,6 +66,12 @@ internal class CreateMatchOnlineViewModel(
             is CreateMatchOnlineEvent.VisibilityChanged ->
                 uiState = uiState.copy(isPublic = event.isPublic, error = null)
 
+            is CreateMatchOnlineEvent.FormatChanged ->
+                uiState = uiState.copy(format = event.format, error = null)
+
+            is CreateMatchOnlineEvent.TimeControlChanged ->
+                uiState = uiState.copy(timeControlMinutes = event.minutes, error = null)
+
             CreateMatchOnlineEvent.CreateMatch -> createMatch()
             CreateMatchOnlineEvent.Cancel -> cancel()
         }
@@ -79,9 +86,19 @@ internal class CreateMatchOnlineViewModel(
         val name = uiState.playerName.trim()
         val playerCount = uiState.playerCount
         val isPublic = uiState.isPublic
+        val competitive = CompetitiveConfig(
+            format = uiState.format,
+            timeControlSeconds = uiState.timeControlMinutes?.let { it * SECONDS_PER_MINUTE },
+        )
         uiState = uiState.copy(phase = CreateMatchOnlinePhase.Creating, error = null)
         scope.launch {
-            val id = repo.createMatch(GameConfig(playerCount = playerCount), name, appVersion, isPublic)
+            val id = repo.createMatch(
+                GameConfig(playerCount = playerCount),
+                name,
+                appVersion,
+                isPublic,
+                competitive,
+            )
             hostedMatch = id
             uiState = uiState.copy(
                 phase = CreateMatchOnlinePhase.WaitingForOpponent,

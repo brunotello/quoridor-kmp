@@ -90,6 +90,38 @@ class OnlineMatchSerializationTest {
     }
 
     @Test
+    fun `competitive state round-trips through json`() {
+        val config = GameConfig(playerCount = 2)
+        val match = OnlineMatch(
+            id = MatchId("ROOM01"),
+            config = config,
+            status = MatchStatus.IN_PROGRESS,
+            state = QuoridorRules.startGame(config),
+            version = 1,
+            playerNames = listOf("Ana", "Beto"),
+            presence = listOf(true, true),
+            competitive = CompetitiveState(
+                config = CompetitiveConfig(
+                    format = SeriesFormat.FIRST_TO_3,
+                    timeControlSeconds = 300,
+                ),
+                wins = listOf(1, 0),
+                gameIndex = 1,
+                remainingMillis = listOf(184_000L, 297_500L),
+            ),
+        )
+
+        val decoded = json.decodeFromString(
+            OnlineMatch.serializer(),
+            json.encodeToString(OnlineMatch.serializer(), match),
+        )
+
+        assertEquals(match.competitive, decoded.competitive)
+        assertEquals(SeriesFormat.FIRST_TO_3, decoded.competitive.config.format)
+        assertEquals(listOf(1, 0), decoded.competitive.wins)
+    }
+
+    @Test
     fun `is open to public only when public, waiting and not full`() {
         val config = GameConfig(playerCount = 2)
         val waiting = OnlineMatch(

@@ -13,4 +13,7 @@ internal sealed interface GameEvent {
     data class WallClick(val wall: Wall) : GameEvent
     data object LeaveMatch : GameEvent
     data object NewGame : GameEvent
+
+    /** Online competitivo: avanzar al siguiente juego de la serie. */
+    data object ContinueSeries : GameEvent
 }

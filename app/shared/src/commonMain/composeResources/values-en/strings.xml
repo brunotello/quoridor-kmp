@@ -131,6 +131,7 @@
     <string name="online_turn_of">%1$s's turn</string>
     <string name="online_your_turn">Your turn</string>
     <string name="online_opponent_left">A player left the match.</string>
+    <string name="match_starting">The game begins!</string>
     <string name="board_zoom_hint">Pinch with two fingers in the board to zoom</string>
     <string name="board_wall_hint">Tap the walls in your player panel to place one</string>
     <string name="online_cancel">Cancel</string>
@@ -140,6 +141,24 @@
     <string name="online_error_connection">Couldn't connect. Check your connection and try again.</string>
     <string name="online_error_unsupported">Online mode isn't available on this platform.</string>
     <string name="online_error_join_timeout">Couldn't join the match. Please try again.</string>
+
+    <!-- Online competitive mode -->
+    <string name="competitive_format_label">Series mode</string>
+    <string name="competitive_format_single">1 game</string>
+    <string name="competitive_format_first_to_3">First to 3 wins</string>
+    <string name="competitive_format_first_to_5">First to 5 wins</string>
+    <string name="competitive_timer_label">Timer</string>
+    <string name="competitive_timer_off">No limit</string>
+    <string name="competitive_timer_minutes">%1$d min</string>
+    <string name="competitive_series_score">%1$d - %2$d</string>
+    <string name="competitive_series_wins">%1$d/%2$d</string>
+    <string name="competitive_series_game_over">Game over</string>
+    <string name="competitive_series_continue">Next game</string>
+    <string name="competitive_series_waiting">Waiting for your rival to continue…</string>
+    <string name="competitive_series_won">You won the series!</string>
+    <string name="competitive_series_lost">You lost the series</string>
+    <string name="competitive_config_series">Series: %1$s</string>
+    <string name="competitive_config_timer">Clock: %1$s</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

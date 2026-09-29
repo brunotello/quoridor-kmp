@@ -4,6 +4,7 @@ import com.btello.quoridor.domain.model.Cell
 import com.btello.quoridor.domain.model.GameState
 import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.model.Wall
+import com.btello.quoridor.domain.online.SeriesFormat
 
 /**
  * Estado de UI de la partida en curso (feature `game`).
@@ -27,6 +28,44 @@ internal data class GameUiState(
     val playerNames: List<String> = emptyList(),
     val localPlayerId: PlayerId? = null,
     val turnBanner: TurnBanner? = null,
+    val competitive: CompetitiveUi? = null,
+    val isSeriesOver: Boolean = true,
+    val matchIntro: MatchIntro? = null,
+)
+
+/**
+ * Estado de la introducción de una partida online, mostrado como título centrado
+ * sobre el tablero (que permanece deshabilitado mientras está presente).
+ * La capa Compose resuelve cada caso a texto de `strings.xml`.
+ */
+internal sealed interface MatchIntro {
+    /** La sala espera a que se conecten todos los jugadores. */
+    data object WaitingForPlayers : MatchIntro
+
+    /**
+     * Cuenta atrás previa al inicio del juego. [value] va de 5 a 0; el 0 anuncia
+     * el comienzo del juego ("¡comienza el juego!") en lugar de mostrar el número.
+     */
+    data class Countdown(val value: Int) : MatchIntro
+}
+
+/**
+ * Información del modo competitivo mostrada sobre el tablero: el formato de la
+ * serie ([format]), las victorias por jugador ([wins], indexado por
+ * [PlayerId.value]), cuántas hacen falta para ganarla ([gamesToWin]) y el tiempo
+ * restante de cada jugador en milisegundos ([clocksMillis], `null` si la partida
+ * no tiene temporizador). [localPlayerId] identifica al jugador de este
+ * dispositivo para resaltarlo. [presentPlayerIds] son los [PlayerId.value] que
+ * siguen en la serie: quienes abandonaron se ocultan del marcador, pero quien
+ * pierde un juego por tiempo permanece porque continúa en el siguiente juego.
+ */
+internal data class CompetitiveUi(
+    val format: SeriesFormat,
+    val wins: List<Int>,
+    val gamesToWin: Int,
+    val clocksMillis: List<Long>? = null,
+    val localPlayerId: PlayerId? = null,
+    val presentPlayerIds: Set<Int> = wins.indices.toSet(),
 )
 
 /**

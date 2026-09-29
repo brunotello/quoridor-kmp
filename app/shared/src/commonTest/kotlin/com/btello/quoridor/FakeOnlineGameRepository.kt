@@ -2,6 +2,8 @@ package com.btello.quoridor
 
 import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.GameState
+import com.btello.quoridor.domain.online.CompetitiveConfig
+import com.btello.quoridor.domain.online.CompetitiveState
 import com.btello.quoridor.domain.online.IncompatibleVersionException
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.MatchStatus
@@ -12,6 +14,7 @@ import com.btello.quoridor.domain.rules.QuoridorRules
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import kotlin.random.Random
 
 /**
  * Repositorio online en memoria para tests deterministas (sin Firebase). Cada
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.map
  */
 internal class FakeOnlineGameRepository(
     private val fixedId: String = "ROOM01",
+    private val startingPlayerRandom: Random? = null,
 ) : OnlineGameRepository {
 
     val matches = mutableMapOf<MatchId, MutableStateFlow<OnlineMatch>>()
@@ -32,6 +36,7 @@ internal class FakeOnlineGameRepository(
         hostName: String,
         appVersion: String,
         isPublic: Boolean,
+        competitive: CompetitiveConfig,
     ): MatchId {
         val id = MatchId(fixedId)
         matches[id] = MutableStateFlow(
@@ -45,6 +50,7 @@ internal class FakeOnlineGameRepository(
                 presence = listOf(true),
                 isPublic = isPublic,
                 appVersion = appVersion,
+                competitive = CompetitiveState.initial(config.playerCount, competitive),
             ),
         )
         bumpRevision()
@@ -90,21 +96,30 @@ internal class FakeOnlineGameRepository(
     override suspend fun submitMove(
         id: MatchId,
         newState: GameState,
+        competitive: CompetitiveState,
         expectedVersion: Long,
     ): Result<Unit> {
         val flow = matches[id] ?: return Result.failure(NoSuchElementException("not found"))
         if (expectedVersion <= flow.value.version) {
             return Result.failure(IllegalStateException("stale"))
         }
-        val status = if (QuoridorRules.isGameOver(newState)) MatchStatus.FINISHED else flow.value.status
-        flow.value = flow.value.copy(state = newState, version = expectedVersion, status = status)
+        val seriesOver = QuoridorRules.isGameOver(newState) && competitive.isSeriesOver
+        val status = if (seriesOver) MatchStatus.FINISHED else flow.value.status
+        flow.value = flow.value.copy(
+            state = newState,
+            competitive = competitive,
+            version = expectedVersion,
+            status = status,
+        )
         bumpRevision()
         return Result.success(Unit)
     }
 
     override suspend fun leaveMatch(id: MatchId, slot: PlayerSlot) {
         val flow = matches[id] ?: return
-        flow.value = flow.value.copy(status = MatchStatus.ABANDONED)
+        val presence = flow.value.presence.toMutableList()
+        if (slot.index in presence.indices) presence[slot.index] = false
+        flow.value = flow.value.copy(status = MatchStatus.ABANDONED, presence = presence)
         bumpRevision()
     }
 
@@ -139,9 +154,30 @@ internal class FakeOnlineGameRepository(
         bumpRevision()
     }
 
-    fun pushRemoteState(id: MatchId, state: GameState, version: Long) {
+    fun pushRemoteState(
+        id: MatchId,
+        state: GameState,
+        version: Long,
+        competitive: CompetitiveState? = null,
+        presence: List<Boolean>? = null,
+    ) {
         val flow = matches.getValue(id)
-        flow.value = flow.value.copy(state = state, version = version)
+        flow.value = flow.value.copy(
+            state = state,
+            version = version,
+            competitive = competitive ?: flow.value.competitive,
+            presence = presence ?: flow.value.presence,
+        )
+        bumpRevision()
+    }
+
+    /** Configura la sala [id] con una serie/temporizador competitivo (tests). */
+    fun setCompetitive(id: MatchId, config: CompetitiveConfig) {
+        val flow = matches.getValue(id)
+        val playerCount = flow.value.config.playerCount
+        flow.value = flow.value.copy(
+            competitive = CompetitiveState.initial(playerCount, config),
+        )
         bumpRevision()
     }
 
@@ -155,8 +191,14 @@ internal class FakeOnlineGameRepository(
         val names = match.playerNames + name
         val presence = match.presence + true
         val willBeFull = names.size >= match.config.playerCount
+        val state = if (willBeFull && startingPlayerRandom != null) {
+            QuoridorRules.withRandomStartingPlayer(match.state, startingPlayerRandom)
+        } else {
+            match.state
+        }
         return match.copy(
             status = if (willBeFull) MatchStatus.IN_PROGRESS else MatchStatus.WAITING,
+            state = state,
             playerNames = names,
             presence = presence,
         )

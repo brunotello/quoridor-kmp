@@ -55,7 +55,14 @@ internal fun OnlineGameScreen(
     AppBackHandler { onBackRequested() }
 
     val state = viewModel.uiState
-    if (state.isGameOver) {
+    val competitive = state.competitive
+    if (state.isGameOver && !state.isSeriesOver && competitive != null) {
+        SeriesResultScreen(
+            competitive = competitive,
+            result = state.localResult,
+            onContinue = { viewModel.onEvent(GameEvent.ContinueSeries) },
+        )
+    } else if (state.isGameOver) {
         GameResultScreen(
             winnerNumber = state.winnerNumber ?: 1,
             onBackToMenu = { viewModel.onEvent(GameEvent.NewGame) },
