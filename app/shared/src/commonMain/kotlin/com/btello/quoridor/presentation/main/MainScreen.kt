@@ -35,7 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.navigation.AppBackHandler
 import com.btello.quoridor.presentation.navigation.NavAnimatedContent
-import com.btello.quoridor.presentation.online.OnlineLobbyScreen
+import com.btello.quoridor.presentation.online.OnlineScreen
 import com.btello.quoridor.presentation.theme.EmojiText
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import com.btello.quoridor.presentation.theme.safeAreaTopPadding
@@ -120,7 +120,7 @@ internal fun MainScreen(
 
             MainNav.OnlineLobby -> {
                 AppBackHandler { showOnlineLobby = false }
-                OnlineLobbyScreen(
+                OnlineScreen(
                     key = onlineLobbyKey,
                     onStartGame = { setup ->
                         showOnlineLobby = false

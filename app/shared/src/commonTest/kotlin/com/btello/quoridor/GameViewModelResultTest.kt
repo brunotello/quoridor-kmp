@@ -9,6 +9,7 @@ import com.btello.quoridor.domain.rules.QuoridorRules
 import com.btello.quoridor.presentation.game.GameResult
 import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.game.GameViewModel
+import com.btello.quoridor.presentation.game.OnlineGameViewModel
 import com.btello.quoridor.presentation.game.OnlineSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -35,7 +36,7 @@ class GameViewModelResultTest {
         scope: CoroutineScope,
         repo: FakeOnlineGameRepository,
         slot: PlayerSlot,
-    ) = GameViewModel(
+    ) = OnlineGameViewModel(
         setup = GameSetup(config, online = OnlineSession(repo.matches.keys.first(), slot)),
         autoRunAi = false,
         onlineRepository = repo,

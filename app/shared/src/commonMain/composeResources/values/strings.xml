@@ -119,12 +119,15 @@
     <string name="online_turn_of">Turno de %1$s</string>
     <string name="online_your_turn">Tu turno</string>
     <string name="online_opponent_left">Un jugador abandonó la partida.</string>
+    <string name="board_zoom_hint">Pellizca con dos dedos en el tablero para hacer zoom</string>
+    <string name="board_wall_hint">Toca los muros del panel de tu jugador para colocar uno</string>
     <string name="online_cancel">Cancelar</string>
     <string name="online_error_not_found">No se encontró una sala con ese código.</string>
     <string name="online_error_not_joinable">Esa sala ya no está disponible.</string>
     <string name="online_error_incompatible_version">Esa sala usa otra versión de la app. Actualiza para poder jugar juntos.</string>
     <string name="online_error_connection">No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="online_error_unsupported">El modo online no está disponible en esta plataforma.</string>
+    <string name="online_error_join_timeout">No se pudo unir a la partida. Inténtalo nuevamente.</string>
 
     <!-- Reglas -->
     <string name="rules_title">Reglas del juego</string>

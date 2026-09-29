@@ -9,7 +9,7 @@ import com.btello.quoridor.domain.rules.QuoridorRules
 import com.btello.quoridor.presentation.game.GameEvent
 import com.btello.quoridor.presentation.game.GameFeedback
 import com.btello.quoridor.presentation.game.GameSetup
-import com.btello.quoridor.presentation.game.GameViewModel
+import com.btello.quoridor.presentation.game.OnlineGameViewModel
 import com.btello.quoridor.presentation.game.OnlineSession
 import com.btello.quoridor.presentation.game.TurnBanner
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +46,7 @@ class GameViewModelOnlineTest {
         val repo = FakeOnlineGameRepository()
         val id = repo.createMatch(config, "Host", AppConfig.VERSION)
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -65,7 +65,7 @@ class GameViewModelOnlineTest {
         val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.GUEST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -86,7 +86,7 @@ class GameViewModelOnlineTest {
         val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.GUEST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -120,7 +120,7 @@ class GameViewModelOnlineTest {
         val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -142,7 +142,7 @@ class GameViewModelOnlineTest {
         val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -165,7 +165,7 @@ class GameViewModelOnlineTest {
         val id = repo.createMatch(config, "Ana", AppConfig.VERSION)
         repo.simulateJoin(id, "Beto")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,

@@ -8,6 +8,7 @@ import com.btello.quoridor.domain.online.PlayerSlot
 import com.btello.quoridor.presentation.game.GameEvent
 import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.game.GameViewModel
+import com.btello.quoridor.presentation.game.OnlineGameViewModel
 import com.btello.quoridor.presentation.game.OnlineSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -43,7 +44,7 @@ class GameViewModelLeaveTest {
         val id = repo.createMatch(config, "Host", AppConfig.VERSION)
         repo.simulateJoin(id, "Rival")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -70,7 +71,7 @@ class GameViewModelLeaveTest {
         repo.simulateJoin(id, "Rival 2")
         repo.simulateJoin(id, "Rival 3")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(fourPlayers, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,
@@ -95,7 +96,7 @@ class GameViewModelLeaveTest {
         val id = repo.createMatch(config, "Host", AppConfig.VERSION)
         repo.simulateJoin(id, "Rival")
         val scope = onlineScope()
-        val vm = GameViewModel(
+        val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
             onlineRepository = repo,

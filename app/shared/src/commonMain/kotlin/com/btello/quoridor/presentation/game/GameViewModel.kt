@@ -11,13 +11,10 @@ import com.btello.quoridor.domain.model.GameState
 import com.btello.quoridor.domain.model.Move
 import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.model.Wall
-import com.btello.quoridor.domain.online.MatchStatus
-import com.btello.quoridor.domain.online.OnlineGameRepository
 import com.btello.quoridor.domain.rules.QuoridorRules
 import com.btello.quoridor.domain.stats.GameRecord
 import com.btello.quoridor.domain.stats.StatisticsRepository
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -27,20 +24,25 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.CoroutineContext
 import kotlin.time.TimeSource
 
 private const val DEFAULT_AI_MOVE_DELAY_MS = 450L
 
 /**
- * ViewModel de la partida. Contiene la lógica del tablero (turnos, movimientos de
- * peón, colocación de muros y fin de juego) y, en el modo contra la IA, orquesta
- * los turnos del oponente controlado por la máquina.
+ * ViewModel base de la partida (modo local: 1 contra 1 en el mismo dispositivo o
+ * contra la IA). Contiene toda la lógica del tablero (turnos, movimientos de
+ * peón, colocación de muros y fin de juego) y orquesta los turnos del oponente
+ * controlado por la máquina.
+ *
+ * No conoce nada del modo online: esa funcionalidad la aporta
+ * [OnlineGameViewModel], que hereda de esta clase y reutiliza la lógica de juego
+ * como base, sobrescribiendo únicamente los puntos de extensión (`protected open`)
+ * necesarios para sincronizar la sala.
  *
  * La selección de configuración ("iniciar juego") vive en el feature `menu`.
  * Los parámetros de IA se inyectan para permitir tests deterministas.
  */
-internal class GameViewModel(
+internal open class GameViewModel(
     setup: GameSetup,
     private val aiStrategy: AiStrategy? = setup.difficulty?.let { AiStrategy.forDifficulty(it) },
     private val aiMoveDelayMillis: Long = DEFAULT_AI_MOVE_DELAY_MS,
@@ -48,35 +50,21 @@ internal class GameViewModel(
     private val autoRunAi: Boolean = true,
     private val statisticsRepository: StatisticsRepository? = null,
     private val timeSource: TimeSource = TimeSource.Monotonic,
-    private val onlineRepository: OnlineGameRepository? = null,
-    onlineScope: CoroutineScope? = null,
 ) : ViewModel() {
-
-    private val onlineScope: CoroutineScope = onlineScope ?: viewModelScope
-    private val onlineSession = setup.online
-    private val isOnline = onlineSession != null
-    private val localPlayerId = onlineSession?.localPlayerId
 
     /**
      * Jugador que controla este dispositivo, usado para decidir si la partida se
-     * ganó o se perdió. En online es el asiento local; contra IA es el único
-     * humano; en partida local compartida no hay perspectiva local (`null`).
+     * ganó o se perdió. Contra IA es el único humano; en partida local compartida
+     * no hay perspectiva local (`null`). El modo online la redefine con el asiento
+     * local.
      */
-    private val localHumanId: PlayerId? = when {
-        isOnline -> localPlayerId
-        else -> (0 until setup.config.playerCount)
+    protected open val localHumanId: PlayerId? =
+        (0 until setup.config.playerCount)
             .map { PlayerId(it) }
             .filterNot { it in setup.aiPlayers }
             .singleOrNull()
-    }
 
-    /** Versión (nº de jugada) sincronizada de la partida online. */
-    private var onlineVersion: Long = 0
-    private var onlineStatus: MatchStatus? = if (isOnline) MatchStatus.WAITING else null
-    private var onlinePlayerNames: List<String> = emptyList()
-    private var onlineJob: Job? = null
-
-    private val aiPlayers: Set<PlayerId> = setup.aiPlayers
+    protected val aiPlayers: Set<PlayerId> = setup.aiPlayers
     private val difficulty = setup.difficulty
     private val startMark = timeSource.markNow()
 
@@ -88,97 +76,42 @@ internal class GameViewModel(
 
     private var gameRecorded = false
 
-    private var gameState: GameState = QuoridorRules.startGame(setup.config)
+    protected var gameState: GameState = QuoridorRules.startGame(setup.config)
     private var showingWallTargets: Boolean = false
     private var legalWallTargets: List<Wall> = emptyList()
-    private var feedback: GameFeedback? = null
+    protected var feedback: GameFeedback? = null
     private var isAiThinking: Boolean = false
-    private var aiJob: Job? = null
+    protected var aiJob: Job? = null
 
     var uiState by mutableStateOf(buildUiState())
         private set
 
-    private val _sideEffects = Channel<GameSideEffect>(Channel.BUFFERED)
+    protected val _sideEffects = Channel<GameSideEffect>(Channel.BUFFERED)
     val sideEffects: Flow<GameSideEffect> = _sideEffects.receiveAsFlow()
-
-    init {
-        startObservingOnline()
-    }
-
-    /** Escucha en tiempo real el estado de la sala online y adopta las jugadas del rival. */
-    private fun startObservingOnline() {
-        val repository = onlineRepository ?: return
-        val session = onlineSession ?: return
-        onlineJob = onlineScope.launch {
-            repository.observeMatch(session.matchId).collect { match ->
-                onlineStatus = match.status
-                onlinePlayerNames = match.playerNames
-                if (match.version > onlineVersion) {
-                    onlineVersion = match.version
-                    gameState = match.state
-                    val gameOver = QuoridorRules.isGameOver(gameState)
-                    feedback = if (gameOver) GameFeedback.GameOver else null
-                }
-                refresh()
-            }
-        }
-    }
-
-    /** Publica el [gameState] local tras una jugada del jugador de este dispositivo. */
-    private fun publishOnlineMove() {
-        val repository = onlineRepository ?: return
-        val session = onlineSession ?: return
-        onlineVersion += 1
-        val version = onlineVersion
-        onlineScope.launch {
-            repository.submitMove(session.matchId, gameState, version)
-        }
-    }
-
-    private fun leaveOnline() {
-        val repository = onlineRepository ?: return
-        val session = onlineSession ?: return
-        onlineScope.launch {
-            repository.leaveMatch(session.matchId, session.slot)
-        }
-    }
 
     fun onEvent(event: GameEvent) {
         when (event) {
-            GameEvent.ActivePawnClick -> if (!isHumanInputBlocked()) onActivePawnClick()
-            GameEvent.WallReserveClick -> if (!isHumanInputBlocked()) onWallReserveClick()
-            is GameEvent.CellClick -> if (!isHumanInputBlocked()) onCellClick(event.cell)
-            is GameEvent.WallClick -> if (!isHumanInputBlocked()) onWallClick(event.wall)
+            GameEvent.ActivePawnClick -> if (!isInputBlocked()) onActivePawnClick()
+            GameEvent.WallReserveClick -> if (!isInputBlocked()) onWallReserveClick()
+            is GameEvent.CellClick -> if (!isInputBlocked()) onCellClick(event.cell)
+            is GameEvent.WallClick -> if (!isInputBlocked()) onWallClick(event.wall)
             GameEvent.LeaveMatch -> onLeaveMatch()
-            GameEvent.NewGame -> {
-                aiJob?.cancel()
-                onlineJob?.cancel()
-                leaveOnline()
-                _sideEffects.trySend(GameSideEffect.NavigateToMenu)
-            }
+            GameEvent.NewGame -> onNewGame()
         }
     }
 
-    /**
-     * El jugador local abandona la partida. En online se lo quita del estado con
-     * [QuoridorRules.withPlayerRemoved] y se publica el nuevo estado para el resto:
-     * si sólo queda un rival (1v1), este gana y la partida termina; si quedan dos o
-     * más (4 jugadores), la partida sigue sin el que se fue. En local sólo se sale
-     * al menú. En todos los casos se cancelan los trabajos en curso y se navega al
-     * menú.
-     */
-    private fun onLeaveMatch() {
+    /** Volver al menú para iniciar otra partida. */
+    protected open fun onNewGame() {
         aiJob?.cancel()
-        onlineJob?.cancel()
-        if (isOnline && !QuoridorRules.isGameOver(gameState)) {
-            localPlayerId?.let { playerId ->
-                gameState = QuoridorRules.withPlayerRemoved(gameState, playerId)
-                if (QuoridorRules.isGameOver(gameState)) {
-                    feedback = GameFeedback.GameOver
-                }
-                publishOnlineMove()
-            }
-        }
+        _sideEffects.trySend(GameSideEffect.NavigateToMenu)
+    }
+
+    /**
+     * El jugador abandona la partida. En local sólo se sale al menú sin
+     * consecuencias en el estado de juego.
+     */
+    protected open fun onLeaveMatch() {
+        aiJob?.cancel()
         _sideEffects.trySend(GameSideEffect.NavigateToMenu)
     }
 
@@ -255,10 +188,9 @@ internal class GameViewModel(
     /**
      * Registra la partida finalizada (una única vez) desde la perspectiva del
      * jugador humano ([PlayerId] 0). Las métricas de jugadas y muros son las del
-     * ganador.
+     * ganador. El modo online no registra estadísticas.
      */
-    private fun recordGame() {
-        if (isOnline) return
+    protected open fun recordGame() {
         val repository = statisticsRepository ?: return
         if (gameRecorded) return
         val winner = gameState.winner ?: return
@@ -274,12 +206,12 @@ internal class GameViewModel(
         )
     }
 
-    private fun onHumanMoveApplied() {
-        if (isOnline) {
-            publishOnlineMove()
-        } else if (autoRunAi) {
-            startAiTurn()
-        }
+    /**
+     * Acción tras aplicar una jugada del jugador de este dispositivo. En local,
+     * cede el turno a la IA cuando corresponde. El modo online publica la jugada.
+     */
+    protected open fun onHumanMoveApplied() {
+        if (autoRunAi) startAiTurn()
     }
 
     /** Lanza (en corrutina) los turnos de la IA mientras le corresponda jugar. */
@@ -307,16 +239,9 @@ internal class GameViewModel(
     internal fun aiControlsCurrentTurn(): Boolean =
         !QuoridorRules.isGameOver(gameState) && gameState.turn.playerId in aiPlayers
 
-    private fun isHumanInputBlocked(): Boolean =
-        isAiThinking || aiControlsCurrentTurn() || isOnlineInputBlocked()
-
-    /** En online se bloquea la entrada salvo que la sala esté en curso y sea el turno local. */
-    private fun isOnlineInputBlocked(): Boolean =
-        isOnline && (onlineStatus != MatchStatus.IN_PROGRESS || gameState.turn.playerId != localPlayerId)
-
-    /** True si la partida online terminó porque un jugador la abandonó. */
-    private fun isOnlineAbandoned(): Boolean =
-        isOnline && onlineStatus == MatchStatus.ABANDONED
+    /** True si la entrada del usuario debe ignorarse en el estado actual. */
+    protected open fun isInputBlocked(): Boolean =
+        isAiThinking || aiControlsCurrentTurn()
 
     /**
      * Ejecuta de forma síncrona (sin retardo ni corrutinas) los turnos pendientes
@@ -330,14 +255,14 @@ internal class GameViewModel(
         }
     }
 
-    private fun refresh() {
+    protected fun refresh() {
         uiState = buildUiState()
     }
 
     private fun buildUiState(): GameUiState {
-        val isAbandoned = isOnlineAbandoned()
+        val isAbandoned = isAbandoned()
         val isGameOver = QuoridorRules.isGameOver(gameState) || isAbandoned
-        val humanTurn = !isGameOver && gameState.turn.playerId !in aiPlayers && !isOnlineInputBlocked()
+        val humanTurn = !isGameOver && gameState.turn.playerId !in aiPlayers && !isRemoteInputBlocked()
         val legalTargets = if (humanTurn) {
             QuoridorRules.getLegalMoves(gameState)
                 .filterIsInstance<Move.PawnMove>()
@@ -350,15 +275,15 @@ internal class GameViewModel(
             gameState = gameState,
             legalTargets = legalTargets,
             legalWalls = if (humanTurn) legalWallTargets.toSet() else emptySet(),
-            feedback = feedback ?: onlineFeedback(isGameOver),
+            feedback = feedback ?: extraFeedback(isGameOver),
             isGameOver = isGameOver,
             isAbandoned = isAbandoned,
             isAiThinking = isAiThinking,
             aiPlayers = aiPlayers,
             winnerNumber = gameState.winner?.value?.plus(1),
             localResult = localResult(isAbandoned),
-            playerNames = if (isOnline) onlinePlayerNames else emptyList(),
-            localPlayerId = localPlayerId,
+            playerNames = playerNames(),
+            localPlayerId = localPlayerIdOrNull(),
             turnBanner = turnBanner(isGameOver),
         )
     }
@@ -375,25 +300,23 @@ internal class GameViewModel(
         return if (winner == localId) GameResult.WON else GameResult.LOST
     }
 
-    /** Indicador de turno online mostrado sobre el tablero (sólo con la partida en curso). */
-    private fun turnBanner(isGameOver: Boolean): TurnBanner? {
-        if (!isOnline || isGameOver || onlineStatus != MatchStatus.IN_PROGRESS) return null
-        val turnId = gameState.turn.playerId
-        return if (turnId == localPlayerId) {
-            TurnBanner.YourTurn
-        } else {
-            TurnBanner.PlayerTurn(
-                playerNumber = turnId.value + 1,
-                playerName = onlinePlayerNames.getOrNull(turnId.value)?.takeIf { it.isNotBlank() },
-            )
-        }
-    }
+    // --- Puntos de extensión para el modo online (sin efecto en local) ---
 
-    /** Feedback derivado del estado online (sala esperando o abandono). */
-    private fun onlineFeedback(isGameOver: Boolean): GameFeedback? = when {
-        !isOnline || isGameOver -> null
-        onlineStatus == MatchStatus.ABANDONED -> GameFeedback.OpponentLeft
-        onlineStatus != MatchStatus.IN_PROGRESS -> GameFeedback.WaitingOpponent
-        else -> null
-    }
+    /** True si la partida terminó porque un jugador la abandonó. */
+    protected open fun isAbandoned(): Boolean = false
+
+    /** True si la entrada local está bloqueada por el estado remoto (turno del rival, sala en espera). */
+    protected open fun isRemoteInputBlocked(): Boolean = false
+
+    /** Feedback adicional derivado del estado remoto (sala esperando o abandono). */
+    protected open fun extraFeedback(isGameOver: Boolean): GameFeedback? = null
+
+    /** Nombres sincronizados de los jugadores (indexados por [PlayerId.value]); vacío en local. */
+    protected open fun playerNames(): List<String> = emptyList()
+
+    /** Identificador del jugador de este dispositivo; `null` en local. */
+    protected open fun localPlayerIdOrNull(): PlayerId? = null
+
+    /** Indicador de turno mostrado sobre el tablero; `null` en local. */
+    protected open fun turnBanner(isGameOver: Boolean): TurnBanner? = null
 }

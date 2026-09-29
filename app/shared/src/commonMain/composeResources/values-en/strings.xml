@@ -131,12 +131,15 @@
     <string name="online_turn_of">%1$s's turn</string>
     <string name="online_your_turn">Your turn</string>
     <string name="online_opponent_left">A player left the match.</string>
+    <string name="board_zoom_hint">Pinch with two fingers in the board to zoom</string>
+    <string name="board_wall_hint">Tap the walls in your player panel to place one</string>
     <string name="online_cancel">Cancel</string>
     <string name="online_error_not_found">No room found for that code.</string>
     <string name="online_error_not_joinable">That room is no longer available.</string>
     <string name="online_error_incompatible_version">That room uses a different app version. Update to play together.</string>
     <string name="online_error_connection">Couldn't connect. Check your connection and try again.</string>
     <string name="online_error_unsupported">Online mode isn't available on this platform.</string>
+    <string name="online_error_join_timeout">Couldn't join the match. Please try again.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
