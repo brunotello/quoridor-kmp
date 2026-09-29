@@ -75,6 +75,15 @@ value class PlayerSlot(val index: Int) {
  * crecen a medida que los jugadores se unen. La partida arranca
  * ([MatchStatus.IN_PROGRESS]) cuando se ocupan todos los asientos de
  * [GameConfig.playerCount].
+ *
+ * [isPublic] indica si la sala se anuncia en el lobby público (visible para
+ * cualquiera que explore las partidas abiertas, sin necesidad de un código). Las
+ * salas privadas sólo se pueden unir compartiendo el [id].
+ *
+ * [appVersion] es la versión de la app con la que se creó la sala. Sólo pueden
+ * unirse dispositivos con la misma versión: el estado sincronizado depende del
+ * formato de datos y las reglas de esa versión, así que mezclar versiones podría
+ * corromper la partida.
  */
 @Serializable
 data class OnlineMatch(
@@ -85,10 +94,24 @@ data class OnlineMatch(
     val version: Long,
     val playerNames: List<String> = emptyList(),
     val presence: List<Boolean> = emptyList(),
+    val isPublic: Boolean = false,
+    val appVersion: String = "",
 ) {
+    /** `true` cuando la sala fue creada con la misma versión de app [version]. */
+    fun isCompatibleWith(version: String): Boolean = appVersion == version
+
     /** Cantidad de asientos ya ocupados. */
     val joinedCount: Int get() = playerNames.size
 
     /** `true` cuando ya se unieron todos los jugadores de la partida. */
     val isFull: Boolean get() = joinedCount >= config.playerCount
+
+    /** Nombre del anfitrión (asiento [PlayerSlot.HOST]), o vacío si aún no hay. */
+    val hostName: String get() = playerNames.firstOrNull().orEmpty()
+
+    /**
+     * `true` cuando la sala es pública y todavía admite jugadores, es decir,
+     * aparece en el lobby público para unirse sin código.
+     */
+    val isOpenToPublic: Boolean get() = isPublic && status == MatchStatus.WAITING && !isFull
 }

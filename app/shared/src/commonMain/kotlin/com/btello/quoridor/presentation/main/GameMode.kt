@@ -56,14 +56,6 @@ internal enum class GameMode(
         playerCount = 2,
         aiCount = 0,
     ),
-    ONLINE(
-        titleRes = Res.string.game_mode_online,
-        descriptionRes = Res.string.game_mode_online_description,
-        emojiRes = Res.string.game_mode_online_emoji,
-        enabled = OnlinePlatform.isSupported,
-        playerCount = 2,
-        aiCount = 0,
-    ),
     FOUR_PLAYERS(
         titleRes = Res.string.game_mode_4p,
         descriptionRes = Res.string.game_mode_4p_description,
@@ -72,6 +64,14 @@ internal enum class GameMode(
         playerCount = 4,
         aiCount = 0,
         configurableAi = true,
+    ),
+    ONLINE(
+        titleRes = Res.string.game_mode_online,
+        descriptionRes = Res.string.game_mode_online_description,
+        emojiRes = Res.string.game_mode_online_emoji,
+        enabled = OnlinePlatform.isSupported,
+        playerCount = 2,
+        aiCount = 0,
     ),
 }
 

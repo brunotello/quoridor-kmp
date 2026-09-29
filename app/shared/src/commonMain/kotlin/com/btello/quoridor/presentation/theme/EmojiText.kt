@@ -10,17 +10,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.Font
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.noto_color_emoji
+import com.btello.quoridor.getPlatform
 
 /**
- * Fuente de emojis a color empaquetada con la app.
+ * Obtiene la familia de fuentes para renderizar emojis de forma consistente.
  *
- * Los targets basados en Skiko (iOS, escritorio y web) no tienen un fallback de
- * emojis del sistema, por lo que sin esta fuente los emojis se renderizan como
- * "?". Empaquetamos un subconjunto de Noto Color Emoji para que se vean igual en
- * todas las plataformas.
+ * - Android: Usa la fuente personalizada Noto Color Emoji que está empaquetada
+ * - iOS: Usa el fallback del sistema (FontFamily.Default) que renderiza emojis nativamente
  */
 @Composable
-fun rememberEmojiFontFamily(): FontFamily = FontFamily(Font(Res.font.noto_color_emoji))
+fun rememberEmojiFontFamily(): FontFamily {
+    val platform = getPlatform()
+    // En iOS, no forzamos una fuente personalizada para permitir el fallback del sistema
+    return if (platform.name.startsWith("iOS")) {
+        FontFamily.Default
+    } else {
+        // Android y otras plataformas usan la fuente personalizada
+        FontFamily(Font(Res.font.noto_color_emoji))
+    }
+}
 
 /**
  * [Text] que renderiza emojis usando [rememberEmojiFontFamily]. Mantiene el resto

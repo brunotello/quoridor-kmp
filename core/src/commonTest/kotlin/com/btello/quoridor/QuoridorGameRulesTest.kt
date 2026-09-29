@@ -100,6 +100,105 @@ class QuoridorGameRulesTest {
     }
 
     @Test
+    fun `pawn cannot jump over an opponent through a wall between them`() {
+        val base = QuoridorRules.startGame(2)
+        // P0 en (4,4), oponente P1 justo debajo en (5,4). Muro horizontal en (4,4)
+        // cubre las columnas 4 y 5 entre las filas 4 y 5, separando a ambos peones.
+        val state = base.copy(
+            board = base.board.copy(walls = setOf(Wall(4, 4, WallOrientation.HORIZONTAL))),
+            players = listOf(
+                base.players[0].copy(position = Cell(4, 4)),
+                base.players[1].copy(position = Cell(5, 4)),
+            ),
+            turn = com.btello.quoridor.domain.model.Turn(PlayerId(0)),
+        )
+
+        val straightJump = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(6, 4)),
+        )
+        val diagonalJump = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(5, 5)),
+        )
+
+        assertFalse(straightJump.isValid)
+        assertFalse(diagonalJump.isValid)
+    }
+
+    @Test
+    fun `pawn jumps straight over an opponent when the path is clear`() {
+        val base = QuoridorRules.startGame(2)
+        val state = base.copy(
+            players = listOf(
+                base.players[0].copy(position = Cell(4, 4)),
+                base.players[1].copy(position = Cell(5, 4)),
+            ),
+            turn = com.btello.quoridor.domain.model.Turn(PlayerId(0)),
+        )
+
+        val jump = QuoridorRules.applyMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(6, 4)),
+        )
+
+        assertTrue(jump.isSuccessful)
+        assertEquals(Cell(6, 4), jump.state!!.players.first { it.id == PlayerId(0) }.position)
+    }
+
+    @Test
+    fun `pawn jumps diagonally when a wall is behind the opponent`() {
+        val base = QuoridorRules.startGame(2)
+        // Oponente en (5,4) con un muro horizontal en (5,4) detrás (entre filas 5 y 6).
+        val state = base.copy(
+            board = base.board.copy(walls = setOf(Wall(5, 4, WallOrientation.HORIZONTAL))),
+            players = listOf(
+                base.players[0].copy(position = Cell(4, 4)),
+                base.players[1].copy(position = Cell(5, 4)),
+            ),
+            turn = com.btello.quoridor.domain.model.Turn(PlayerId(0)),
+        )
+
+        val straightBlocked = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(6, 4)),
+        )
+        val diagonalLeft = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(5, 3)),
+        )
+        val diagonalRight = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(5, 5)),
+        )
+
+        assertFalse(straightBlocked.isValid)
+        assertTrue(diagonalLeft.isValid)
+        assertTrue(diagonalRight.isValid)
+    }
+
+    @Test
+    fun `pawn cannot reach cells that are not valid diagonal jumps`() {
+        val base = QuoridorRules.startGame(2)
+        val state = base.copy(
+            board = base.board.copy(walls = setOf(Wall(5, 4, WallOrientation.HORIZONTAL))),
+            players = listOf(
+                base.players[0].copy(position = Cell(4, 4)),
+                base.players[1].copy(position = Cell(5, 4)),
+            ),
+            turn = com.btello.quoridor.domain.model.Turn(PlayerId(0)),
+        )
+
+        // (6,5) sería el resultado del offset diagonal erróneo aplicado sobre el oponente.
+        val bogus = QuoridorRules.validateMove(
+            state,
+            Move.PawnMove(PlayerId(0), Cell(4, 4), Cell(6, 5)),
+        )
+
+        assertFalse(bogus.isValid)
+    }
+
+    @Test
     fun `game is over when player reaches opposite border`() {
         val state = QuoridorRules.startGame(2)
         val nearGoal = state.copy(
@@ -114,5 +213,69 @@ class QuoridorGameRulesTest {
 
         assertTrue(result.isSuccessful)
         assertEquals(GameStatus.GAME_OVER, result.state!!.status)
+    }
+
+    @Test
+    fun `removing a player from a 1v1 ends the game and the rival wins`() {
+        val state = QuoridorRules.startGame(2)
+
+        val result = QuoridorRules.withPlayerRemoved(state, PlayerId(0))
+
+        assertEquals(1, result.players.size)
+        assertEquals(GameStatus.GAME_OVER, result.status)
+        assertEquals(PlayerId(1), result.winner)
+        assertEquals(PlayerId(1), result.turn.playerId)
+    }
+
+    @Test
+    fun `removing the current player advances the turn to the next player`() {
+        val state = QuoridorRules.startGame(4)
+
+        val result = QuoridorRules.withPlayerRemoved(state, PlayerId(0))
+
+        assertEquals(3, result.players.size)
+        assertEquals(GameStatus.IN_PROGRESS, result.status)
+        assertEquals(PlayerId(1), result.turn.playerId)
+        assertFalse(result.players.any { it.id == PlayerId(0) })
+    }
+
+    @Test
+    fun `removing the last player in turn order wraps the turn to the first`() {
+        val state = QuoridorRules.startGame(4).let {
+            it.copy(turn = com.btello.quoridor.domain.model.Turn(PlayerId(3)))
+        }
+
+        val result = QuoridorRules.withPlayerRemoved(state, PlayerId(3))
+
+        assertEquals(3, result.players.size)
+        assertEquals(PlayerId(0), result.turn.playerId)
+    }
+
+    @Test
+    fun `removing a player who is not on turn keeps the current turn`() {
+        val state = QuoridorRules.startGame(4)
+
+        val result = QuoridorRules.withPlayerRemoved(state, PlayerId(2))
+
+        assertEquals(3, result.players.size)
+        assertEquals(PlayerId(0), result.turn.playerId)
+    }
+
+    @Test
+    fun `removing an unknown player leaves the state unchanged`() {
+        val state = QuoridorRules.startGame(2)
+
+        val result = QuoridorRules.withPlayerRemoved(state, PlayerId(5))
+
+        assertEquals(state, result)
+    }
+
+    @Test
+    fun `removing a player from a finished game leaves the state unchanged`() {
+        val finished = QuoridorRules.startGame(2).copy(status = GameStatus.GAME_OVER, winner = PlayerId(0))
+
+        val result = QuoridorRules.withPlayerRemoved(finished, PlayerId(1))
+
+        assertEquals(finished, result)
     }
 }

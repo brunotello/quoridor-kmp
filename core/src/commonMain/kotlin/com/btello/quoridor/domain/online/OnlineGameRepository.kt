@@ -18,17 +18,36 @@ interface OnlineGameRepository {
     /**
      * Crea una sala nueva en estado [MatchStatus.WAITING] con el [GameState]
      * inicial de [config] y devuelve su [MatchId] (código de sala compartible).
-     * El anfitrión ocupa el asiento [PlayerSlot.HOST] con nombre [hostName].
+     * El anfitrión ocupa el asiento [PlayerSlot.HOST] con nombre [hostName] y la
+     * sala queda marcada con [appVersion] (la versión de la app local) para que
+     * sólo se unan dispositivos compatibles. Si [isPublic] es `true`, la sala se
+     * anuncia en el lobby público ([observeOpenMatches]) para que otros se unan
+     * sin conocer el código.
      */
-    suspend fun createMatch(config: GameConfig, hostName: String): MatchId
+    suspend fun createMatch(
+        config: GameConfig,
+        hostName: String,
+        appVersion: String,
+        isPublic: Boolean = false,
+    ): MatchId
+
+    /**
+     * Flujo en tiempo real de las partidas públicas abiertas (en
+     * [MatchStatus.WAITING], marcadas como públicas y con asientos libres),
+     * limitado a las creadas con la misma [appVersion] local para no ofrecer
+     * salas incompatibles.
+     */
+    fun observeOpenMatches(appVersion: String): Flow<List<OnlineMatch>>
 
     /**
      * Se une a la sala [id] con nombre [playerName], ocupando el siguiente asiento
      * libre (devuelto como [PlayerSlot]). Falla si la sala no existe, no está en
-     * [MatchStatus.WAITING] o ya está completa. Al ocuparse el último asiento la
-     * partida pasa a [MatchStatus.IN_PROGRESS].
+     * [MatchStatus.WAITING], ya está completa o fue creada con una versión de app
+     * distinta a [appVersion] (en cuyo caso el error es
+     * [IncompatibleVersionException]). Al ocuparse el último asiento la partida
+     * pasa a [MatchStatus.IN_PROGRESS].
      */
-    suspend fun joinMatch(id: MatchId, playerName: String): Result<PlayerSlot>
+    suspend fun joinMatch(id: MatchId, playerName: String, appVersion: String): Result<PlayerSlot>
 
     /** Flujo en tiempo real del estado de la sala [id]. */
     fun observeMatch(id: MatchId): Flow<OnlineMatch>

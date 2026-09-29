@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Fence
+import androidx.compose.material.icons.filled.Pinch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,11 +42,11 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.btello.quoridor.data.online.OnlinePlatform
 import com.btello.quoridor.data.stats.StatisticsProvider
 import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.Player
@@ -58,6 +60,8 @@ import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.ai_player_name
 import quoridor.app.shared.generated.resources.ai_thinking
+import quoridor.app.shared.generated.resources.board_wall_hint
+import quoridor.app.shared.generated.resources.board_zoom_hint
 import quoridor.app.shared.generated.resources.difficulty_back
 import quoridor.app.shared.generated.resources.feedback_invalid_move
 import quoridor.app.shared.generated.resources.feedback_invalid_wall
@@ -84,7 +88,6 @@ internal fun GameScreen(
         GameViewModel(
             setup,
             statisticsRepository = StatisticsProvider.repository,
-            onlineRepository = if (setup.online != null) OnlinePlatform.repositoryOrNull() else null,
         )
     },
 ) {
@@ -96,26 +99,27 @@ internal fun GameScreen(
         }
     }
 
-    AppBackHandler { onNavigateToMenu() }
+    val onBack: () -> Unit = { viewModel.onEvent(GameEvent.LeaveMatch) }
+    AppBackHandler { onBack() }
 
     val state = viewModel.uiState
     if (state.isGameOver) {
         GameResultScreen(
             winnerNumber = state.winnerNumber ?: 1,
-            onNewGame = { viewModel.onEvent(GameEvent.NewGame) },
-            isAbandoned = state.isAbandoned,
+            onBackToMenu = { viewModel.onEvent(GameEvent.NewGame) },
+            result = state.localResult,
         )
     } else {
         GameContent(
             state = state,
             onEvent = viewModel::onEvent,
-            onBack = onNavigateToMenu,
+            onBack = onBack,
         )
     }
 }
 
 @Composable
-private fun GameContent(
+internal fun GameContent(
     state: GameUiState,
     onEvent: (GameEvent) -> Unit,
     onBack: () -> Unit,
@@ -186,6 +190,10 @@ private fun GameContent(
                     onWallReserveClick = { onEvent(GameEvent.WallReserveClick) },
                 )
             }
+
+            AnimatedVisibility(visible = !isBoardZoomed) {
+                BoardHints()
+            }
         }
             IconButton(
                 onClick = onBack,
@@ -199,17 +207,56 @@ private fun GameContent(
             }
 
             state.turnBanner?.let { banner ->
-                Text(
-                    text = turnBannerText(banner),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = playerColor(turnBannerPlayerId(banner, state.localPlayerId)),
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 16.dp, top = 56.dp),
-                )
+                if (!isBoardZoomed) {
+                    Text(
+                        text = turnBannerText(banner),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = playerColor(turnBannerPlayerId(banner, state.localPlayerId)),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(start = 16.dp, end = 16.dp, top = 56.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun BoardHints(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        BoardHint(icon = Icons.Filled.Pinch, text = stringResource(Res.string.board_zoom_hint))
+        BoardHint(icon = Icons.Filled.Fence, text = stringResource(Res.string.board_wall_hint))
+    }
+}
+
+@Composable
+private fun BoardHint(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -372,6 +419,14 @@ private fun Modifier.turnShimmer(active: Boolean): Modifier {
             drawContent()
             drawRect(brush)
         }
+    }
+}
+
+@Preview
+@Composable
+private fun BoardHintsPreview() {
+    QuoridorTheme {
+        BoardHints()
     }
 }
 

@@ -58,9 +58,18 @@ kotlin {
                 implementation(libs.gitlive.firebase.database)
             }
         }
+        val iosMain by creating {
+            dependsOn(commonMain.get())
+            dependsOn(firebaseMain)
+        }
+        val iosTest by creating {
+            dependsOn(commonTest.get())
+        }
         androidMain.get().dependsOn(firebaseMain)
-        iosArm64Main.get().dependsOn(firebaseMain)
-        iosSimulatorArm64Main.get().dependsOn(firebaseMain)
+        iosArm64Main.get().dependsOn(iosMain)
+        iosSimulatorArm64Main.get().dependsOn(iosMain)
+        iosArm64Test.get().dependsOn(iosTest)
+        iosSimulatorArm64Test.get().dependsOn(iosTest)
         jvmMain.get().dependsOn(firebaseMain)
         jsMain.get().dependsOn(firebaseMain)
 

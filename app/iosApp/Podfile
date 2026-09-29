@@ -1,0 +1,6 @@
+platform :ios, '14.0'
+
+target 'iosApp' do
+  use_modular_headers!
+  pod 'Firebase/Database'
+end

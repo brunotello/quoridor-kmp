@@ -12,6 +12,7 @@ import com.btello.quoridor.Destination.Home
 import com.btello.quoridor.Destination.SettingsAbout
 import com.btello.quoridor.presentation.game.GameScreen
 import com.btello.quoridor.presentation.game.GameSetup
+import com.btello.quoridor.presentation.game.OnlineGameScreen
 import com.btello.quoridor.presentation.navigation.NavAnimatedContent
 import com.btello.quoridor.presentation.navigationbar.NavBar
 import com.btello.quoridor.presentation.settings.AboutScreen
@@ -52,11 +53,19 @@ fun App() {
                         },
                         onNavigateToAbout = { destination = SettingsAbout },
                     )
-                    is Game -> GameScreen(
-                        setup = current.setup,
-                        sessionKey = current.sessionId,
-                        onNavigateToMenu = { destination = Home },
-                    )
+                    is Game -> if (current.setup.online != null) {
+                        OnlineGameScreen(
+                            setup = current.setup,
+                            sessionKey = current.sessionId,
+                            onNavigateToMenu = { destination = Home },
+                        )
+                    } else {
+                        GameScreen(
+                            setup = current.setup,
+                            sessionKey = current.sessionId,
+                            onNavigateToMenu = { destination = Home },
+                        )
+                    }
                     SettingsAbout -> AboutScreen(
                         onBack = { destination = Home },
                     )

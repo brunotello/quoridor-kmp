@@ -73,6 +73,35 @@ object QuoridorRules {
         state.status == GameStatus.GAME_OVER || state.players.any { hasReachedGoal(state, it) }
 
     /**
+     * Quita al jugador [playerId] de la partida (abandono). El resto continúa
+     * jugando: si era su turno, este pasa al siguiente jugador. Si tras la salida
+     * queda un único jugador, este gana y la partida termina ([GameStatus.GAME_OVER]).
+     * Si el jugador no existe o la partida ya terminó, devuelve el estado sin cambios.
+     */
+    fun withPlayerRemoved(state: GameState, playerId: PlayerId): GameState {
+        if (state.status == GameStatus.GAME_OVER) return state
+        val index = state.players.indexOfFirst { it.id == playerId }
+        if (index < 0) return state
+        val remaining = state.players.filterNot { it.id == playerId }
+        if (remaining.size <= 1) {
+            val winner = remaining.firstOrNull()
+            return state.copy(
+                players = remaining,
+                turn = winner?.let { Turn(it.id) } ?: state.turn,
+                status = GameStatus.GAME_OVER,
+                winner = winner?.id,
+            )
+        }
+        val nextTurnId = if (state.turn.playerId == playerId) {
+            val nextIndex = if (index >= remaining.size) 0 else index
+            remaining[nextIndex].id
+        } else {
+            state.turn.playerId
+        }
+        return state.copy(players = remaining, turn = Turn(nextTurnId))
+    }
+
+    /**
      * Longitud (en pasos ortogonales) del camino más corto del jugador [playerId]
      * hasta su [GoalSide], respetando los muros del tablero. Ignora a los demás
      * peones (pueden moverse). Devuelve `null` si el jugador no existe o no tiene
@@ -159,44 +188,47 @@ object QuoridorRules {
 
     private fun getLegalPawnMoves(state: GameState, player: Player): List<Move.PawnMove> {
         val moves = mutableListOf<Move.PawnMove>()
-        val occupied = state.players.associate { other -> other.id to other.position }
+        val occupied = state.players.map { it.position }.toSet()
         val directions = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
-        val diagonals = listOf(1 to 1, 1 to -1, -1 to 1, -1 to -1)
 
         for ((dr, dc) in directions) {
             val candidateRow = player.position.row + dr
             val candidateCol = player.position.col + dc
             if (candidateRow !in 0 until state.board.size || candidateCol !in 0 until state.board.size) continue
             val candidate = Cell(candidateRow, candidateCol)
-            val occupiedByPlayer = occupied.values.any { it == candidate }
-            if (!occupiedByPlayer && !isWallBlocking(state.board, player.position, candidate)) {
+
+            // Un muro entre el jugador y la celda contigua bloquea tanto el paso
+            // como cualquier salto en esa dirección.
+            if (isWallBlocking(state.board, player.position, candidate)) continue
+
+            if (candidate !in occupied) {
                 moves += Move.PawnMove(player.id, player.position, candidate)
                 continue
             }
 
-            val opponent = state.players.firstOrNull { it.position == candidate }
-            if (opponent != null) {
-                val beyondRow = candidate.row + dr
-                val beyondCol = candidate.col + dc
-                if (beyondRow !in 0 until state.board.size || beyondCol !in 0 until state.board.size) continue
-                val beyond = Cell(beyondRow, beyondCol)
-                val behindBlocked = occupied.values.any { it == beyond } || isWallBlocking(state.board, candidate, beyond)
-                if (!behindBlocked && !isWallBlocking(state.board, player.position, candidate)) {
-                    moves += Move.PawnMove(player.id, player.position, beyond)
-                }
+            // La celda contigua está ocupada por un oponente: intentamos saltar.
+            val beyondRow = candidate.row + dr
+            val beyondCol = candidate.col + dc
+            val beyondInBounds = beyondRow in 0 until state.board.size && beyondCol in 0 until state.board.size
+            val beyond = if (beyondInBounds) Cell(beyondRow, beyondCol) else null
+            val canJumpStraight = beyond != null &&
+                beyond !in occupied &&
+                !isWallBlocking(state.board, candidate, beyond)
 
-                if (behindBlocked) {
-                    for ((ddr, ddc) in diagonals) {
-                        val diagonalRow = candidate.row + ddr
-                        val diagonalCol = candidate.col + ddc
-                        if (diagonalRow !in 0 until state.board.size || diagonalCol !in 0 until state.board.size) continue
-                        val diagonalTarget = Cell(diagonalRow, diagonalCol)
-                        if (occupied.values.any { it == diagonalTarget }) continue
-                        val validDiagonal = !isWallBlocking(state.board, candidate, diagonalTarget)
-                        if (validDiagonal) {
-                            moves += Move.PawnMove(player.id, player.position, diagonalTarget)
-                        }
-                    }
+            if (beyond != null && canJumpStraight) {
+                moves += Move.PawnMove(player.id, player.position, beyond)
+            } else {
+                // Salto en línea bloqueado (por muro, borde u otro peón): se permiten
+                // los saltos diagonales a las celdas perpendiculares al oponente.
+                val perpendiculars = if (dr != 0) listOf(0 to 1, 0 to -1) else listOf(1 to 0, -1 to 0)
+                for ((pr, pc) in perpendiculars) {
+                    val diagonalRow = candidate.row + pr
+                    val diagonalCol = candidate.col + pc
+                    if (diagonalRow !in 0 until state.board.size || diagonalCol !in 0 until state.board.size) continue
+                    val diagonalTarget = Cell(diagonalRow, diagonalCol)
+                    if (diagonalTarget in occupied) continue
+                    if (isWallBlocking(state.board, candidate, diagonalTarget)) continue
+                    moves += Move.PawnMove(player.id, player.position, diagonalTarget)
                 }
             }
         }

@@ -11,5 +11,6 @@ internal sealed interface GameEvent {
     data object WallReserveClick : GameEvent
     data class CellClick(val cell: Cell) : GameEvent
     data class WallClick(val wall: Wall) : GameEvent
+    data object LeaveMatch : GameEvent
     data object NewGame : GameEvent
 }
