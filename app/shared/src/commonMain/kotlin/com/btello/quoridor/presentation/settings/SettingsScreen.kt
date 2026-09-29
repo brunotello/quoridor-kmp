@@ -35,9 +35,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.btello.quoridor.AppConfig
 import com.btello.quoridor.data.player.PlayerNameProvider
-import com.btello.quoridor.data.player.PlayerNameRepository
 import com.btello.quoridor.presentation.components.PlatformSwitch
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import com.btello.quoridor.presentation.theme.safeAreaTopPadding
@@ -69,12 +69,29 @@ internal fun SettingsScreen(
     language: String,
     onLanguageChange: (String) -> Unit,
     onNavigateToAbout: () -> Unit = {},
-    playerNameRepository: PlayerNameRepository = PlayerNameProvider.repository,
+    viewModel: SettingsViewModel = viewModel { SettingsViewModel(PlayerNameProvider.repository) },
 ) {
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var showNameDialog by remember { mutableStateOf(false) }
-    var playerName by remember { mutableStateOf(playerNameRepository.name()) }
+    SettingsContent(
+        state = viewModel.uiState,
+        darkTheme = darkTheme,
+        onToggleTheme = onToggleTheme,
+        language = language,
+        onLanguageChange = onLanguageChange,
+        onNavigateToAbout = onNavigateToAbout,
+        onEvent = viewModel::onEvent,
+    )
+}
 
+@Composable
+private fun SettingsContent(
+    state: SettingsUiState,
+    darkTheme: Boolean,
+    onToggleTheme: (Boolean) -> Unit,
+    language: String,
+    onLanguageChange: (String) -> Unit,
+    onNavigateToAbout: () -> Unit,
+    onEvent: (SettingsEvent) -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -96,13 +113,13 @@ internal fun SettingsScreen(
                 title = stringResource(Res.string.settings_section_preferences),
                 content = {
                     PlayerNameSetting(
-                        playerName = playerName,
-                        onClick = { showNameDialog = true },
+                        playerName = state.playerName,
+                        onClick = { onEvent(SettingsEvent.ShowNameDialog) },
                     )
                     DarkModeSetting(darkTheme = darkTheme, onToggleTheme = onToggleTheme)
                     LanguageSetting(
                         selectedLanguage = language,
-                        onClick = { showLanguageDialog = true },
+                        onClick = { onEvent(SettingsEvent.ShowLanguageDialog) },
                     )
                 },
             )
@@ -117,27 +134,22 @@ internal fun SettingsScreen(
         }
     }
 
-    if (showLanguageDialog) {
+    if (state.showLanguageDialog) {
         LanguageDialog(
             selectedLanguage = language,
             onLanguageSelected = {
                 onLanguageChange(it)
-                showLanguageDialog = false
+                onEvent(SettingsEvent.DismissLanguageDialog)
             },
-            onDismiss = { showLanguageDialog = false },
+            onDismiss = { onEvent(SettingsEvent.DismissLanguageDialog) },
         )
     }
 
-    if (showNameDialog) {
+    if (state.showNameDialog) {
         PlayerNameDialog(
-            currentName = playerName,
-            onConfirm = { newName ->
-                val trimmed = newName.trim()
-                playerNameRepository.setName(trimmed)
-                playerName = trimmed
-                showNameDialog = false
-            },
-            onDismiss = { showNameDialog = false },
+            currentName = state.playerName,
+            onConfirm = { newName -> onEvent(SettingsEvent.ConfirmName(newName)) },
+            onDismiss = { onEvent(SettingsEvent.DismissNameDialog) },
         )
     }
 }
@@ -409,18 +421,14 @@ private fun LanguageOption(
 @Composable
 private fun SettingsScreenPreview() {
     QuoridorTheme {
-        SettingsScreen(
+        SettingsContent(
+            state = SettingsUiState(playerName = "Ana"),
             darkTheme = true,
             onToggleTheme = {},
             language = LANGUAGE_SPANISH,
             onLanguageChange = {},
             onNavigateToAbout = {},
-            playerNameRepository = PreviewPlayerNameRepository,
+            onEvent = {},
         )
     }
-}
-
-private val PreviewPlayerNameRepository = object : PlayerNameRepository {
-    override fun name(): String = "Ana"
-    override fun setName(name: String) = Unit
 }
