@@ -9,6 +9,7 @@ import com.btello.quoridor.domain.model.Wall
 import com.btello.quoridor.domain.model.WallOrientation
 import com.btello.quoridor.domain.rules.DomainError
 import com.btello.quoridor.domain.rules.QuoridorRules
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -277,5 +278,38 @@ class QuoridorGameRulesTest {
         val result = QuoridorRules.withPlayerRemoved(finished, PlayerId(1))
 
         assertEquals(finished, result)
+    }
+
+    @Test
+    fun `a random starting player can be someone other than the first`() {
+        val state = QuoridorRules.startGame(4)
+
+        // Seed elegido para que el jugador inicial no sea PlayerId(0).
+        val starters = (0 until 20)
+            .map { seed -> QuoridorRules.withRandomStartingPlayer(state, Random(seed)).turn.playerId }
+            .toSet()
+
+        assertTrue(starters.any { it != PlayerId(0) })
+        assertTrue(starters.all { id -> state.players.any { it.id == id } })
+    }
+
+    @Test
+    fun `a random starting player only changes the turn`() {
+        val state = QuoridorRules.startGame(4)
+
+        val result = QuoridorRules.withRandomStartingPlayer(state, Random(1))
+
+        assertEquals(state.players, result.players)
+        assertEquals(state.board, result.board)
+        assertEquals(state.copy(turn = result.turn), result)
+    }
+
+    @Test
+    fun `a random starting player on an empty game leaves the state unchanged`() {
+        val empty = QuoridorRules.startGame(2).copy(players = emptyList())
+
+        val result = QuoridorRules.withRandomStartingPlayer(empty, Random(0))
+
+        assertEquals(empty, result)
     }
 }

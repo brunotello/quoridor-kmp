@@ -16,6 +16,7 @@ import com.btello.quoridor.domain.model.Turn
 import com.btello.quoridor.domain.model.ValidationResult
 import com.btello.quoridor.domain.model.Wall
 import com.btello.quoridor.domain.model.WallOrientation
+import kotlin.random.Random
 
 object QuoridorRules {
     fun startGame(config: GameConfig): GameState {
@@ -32,6 +33,18 @@ object QuoridorRules {
     }
 
     fun startGame(playerCount: Int): GameState = startGame(GameConfig(playerCount = playerCount))
+
+    /**
+     * Elige al azar (con [random]) qué jugador abre la partida, de modo que quien
+     * crea la sala no sea siempre el primero en jugar. Sólo cambia el [Turn]
+     * inicial; las posiciones y metas de cada jugador se mantienen. Devuelve el
+     * estado sin cambios si no hay jugadores.
+     */
+    fun withRandomStartingPlayer(state: GameState, random: Random): GameState {
+        if (state.players.isEmpty()) return state
+        val starter = state.players.random(random)
+        return state.copy(turn = Turn(starter.id))
+    }
 
     fun validateMove(state: GameState, move: Move): ValidationResult {
         if (state.status == GameStatus.GAME_OVER) {
