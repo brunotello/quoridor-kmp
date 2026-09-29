@@ -97,6 +97,7 @@ internal open class GameViewModel(
             is GameEvent.WallClick -> if (!isInputBlocked()) onWallClick(event.wall)
             GameEvent.LeaveMatch -> onLeaveMatch()
             GameEvent.NewGame -> onNewGame()
+            GameEvent.ContinueSeries -> onContinueSeries()
         }
     }
 
@@ -105,6 +106,9 @@ internal open class GameViewModel(
         aiJob?.cancel()
         _sideEffects.trySend(GameSideEffect.NavigateToMenu)
     }
+
+    /** Avanzar al siguiente juego de una serie competitiva. Sin efecto en local. */
+    protected open fun onContinueSeries() = onNewGame()
 
     /**
      * El jugador abandona la partida. En local sólo se sale al menú sin
@@ -285,6 +289,9 @@ internal open class GameViewModel(
             playerNames = playerNames(),
             localPlayerId = localPlayerIdOrNull(),
             turnBanner = turnBanner(isGameOver),
+            competitive = competitiveUi(),
+            isSeriesOver = if (isGameOver) seriesOver() else true,
+            matchIntro = matchIntro(),
         )
     }
 
@@ -319,4 +326,16 @@ internal open class GameViewModel(
 
     /** Indicador de turno mostrado sobre el tablero; `null` en local. */
     protected open fun turnBanner(isGameOver: Boolean): TurnBanner? = null
+
+    /** Información del modo competitivo (serie/reloj); `null` fuera del online competitivo. */
+    protected open fun competitiveUi(): CompetitiveUi? = null
+
+    /**
+     * `true` cuando el fin del juego actual también cierra la partida (serie
+     * decidida o abandono). En local siempre es `true`: cada juego es la partida.
+     */
+    protected open fun seriesOver(): Boolean = true
+
+    /** Introducción de la partida (espera de jugadores / cuenta atrás); `null` en local. */
+    protected open fun matchIntro(): MatchIntro? = null
 }

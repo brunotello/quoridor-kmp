@@ -94,6 +94,8 @@ internal class FindMatchesOnlineViewModel(
                             hostName = match.hostName,
                             joinedCount = match.joinedCount,
                             playerCount = match.config.playerCount,
+                            format = match.competitive.config.format,
+                            timeControlSeconds = match.competitive.config.timeControlSeconds,
                         )
                     },
                 )

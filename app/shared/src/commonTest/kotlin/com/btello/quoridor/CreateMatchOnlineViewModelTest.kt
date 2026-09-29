@@ -2,6 +2,7 @@ package com.btello.quoridor
 
 import com.btello.quoridor.domain.online.MatchId
 import com.btello.quoridor.domain.online.PlayerSlot
+import com.btello.quoridor.domain.online.SeriesFormat
 import com.btello.quoridor.presentation.online.OnlineError
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.create.CreateMatchOnlineEvent
@@ -175,6 +176,40 @@ class CreateMatchOnlineViewModelTest {
         advanceUntilIdle()
 
         assertTrue(repo.observeOpenMatches(AppConfig.VERSION).first().isEmpty())
+        vm.onEvent(CreateMatchOnlineEvent.Cancel)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `competitive options are carried into the created match`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        val vm = viewModel(repo, this)
+
+        vm.onEvent(CreateMatchOnlineEvent.FormatChanged(SeriesFormat.FIRST_TO_5))
+        vm.onEvent(CreateMatchOnlineEvent.TimeControlChanged(10))
+        vm.onEvent(CreateMatchOnlineEvent.CreateMatch)
+        advanceUntilIdle()
+
+        val competitive = repo.current(MatchId(vm.uiState.hostedCode!!)).competitive
+        assertEquals(SeriesFormat.FIRST_TO_5, competitive.config.format)
+        assertEquals(600, competitive.config.timeControlSeconds)
+        assertEquals(listOf(600_000L, 600_000L), competitive.remainingMillis)
+        vm.onEvent(CreateMatchOnlineEvent.Cancel)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `no timer by default leaves the match without a clock`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        val vm = viewModel(repo, this)
+
+        vm.onEvent(CreateMatchOnlineEvent.CreateMatch)
+        advanceUntilIdle()
+
+        val competitive = repo.current(MatchId(vm.uiState.hostedCode!!)).competitive
+        assertEquals(SeriesFormat.SINGLE, competitive.config.format)
+        assertNull(competitive.config.timeControlSeconds)
+        assertFalse(competitive.config.isCompetitive)
         vm.onEvent(CreateMatchOnlineEvent.Cancel)
         advanceUntilIdle()
     }

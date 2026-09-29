@@ -11,8 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.Pinch
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,6 +71,7 @@ import quoridor.app.shared.generated.resources.feedback_invalid_wall
 import quoridor.app.shared.generated.resources.feedback_no_legal_walls
 import quoridor.app.shared.generated.resources.feedback_no_walls_remaining
 import quoridor.app.shared.generated.resources.game_over
+import quoridor.app.shared.generated.resources.match_starting
 import quoridor.app.shared.generated.resources.online_opponent_left
 import quoridor.app.shared.generated.resources.online_turn_of
 import quoridor.app.shared.generated.resources.online_waiting_opponent
@@ -136,8 +140,51 @@ internal fun GameContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            state.competitive?.let { competitive ->
+                AnimatedVisibility(visible = !isBoardZoomed) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CompetitivePanel(
+                            competitive = competitive,
+                            playerNames = state.playerNames,
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                verticalArrangement = if (state.competitive != null) {
+                    Arrangement.spacedBy(8.dp)
+                } else {
+                    Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+                },
+            ) {
+            if (state.competitive != null) {
+                state.turnBanner?.let { banner ->
+                    AnimatedVisibility(
+                        visible = !isBoardZoomed,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = turnBannerText(banner),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = playerColor(turnBannerPlayerId(banner, state.localPlayerId)),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
             AnimatedVisibility(visible = !isBoardZoomed) {
                 PlayerPanelRow(
                     players = topPlayers,
@@ -150,7 +197,7 @@ internal fun GameContent(
             }
 
             val feedback = state.feedback
-            if (feedback != null) {
+            if (feedback != null && state.matchIntro == null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -178,6 +225,9 @@ internal fun GameContent(
                     onWallClick = { onEvent(GameEvent.WallClick(it)) },
                     onZoomedChange = { isBoardZoomed = it },
                 )
+                state.matchIntro?.let { intro ->
+                    MatchIntroOverlay(intro = intro)
+                }
             }
 
             AnimatedVisibility(visible = !isBoardZoomed) {
@@ -191,8 +241,10 @@ internal fun GameContent(
                 )
             }
 
+            Spacer(modifier = Modifier.weight(1f))
             AnimatedVisibility(visible = !isBoardZoomed) {
                 BoardHints()
+            }
             }
         }
             IconButton(
@@ -206,8 +258,8 @@ internal fun GameContent(
                 )
             }
 
-            state.turnBanner?.let { banner ->
-                if (!isBoardZoomed) {
+            if (!isBoardZoomed && state.competitive == null) {
+                state.turnBanner?.let { banner ->
                     Text(
                         text = turnBannerText(banner),
                         style = MaterialTheme.typography.headlineSmall,
@@ -292,6 +344,50 @@ internal fun turnBannerPlayerId(banner: TurnBanner, localPlayerId: PlayerId?): I
     is TurnBanner.PlayerTurn -> banner.playerNumber - 1
 }
 
+/** Opacidad del velo que atenúa el tablero mientras se muestra la introducción. */
+private const val MatchIntroScrimAlpha = 0.85f
+
+/**
+ * Velo centrado sobre el tablero que muestra la introducción de la partida
+ * (espera de jugadores o cuenta atrás) y lo deshabilita visualmente hasta que
+ * empieza el juego.
+ */
+@Composable
+private fun BoxScope.MatchIntroOverlay(intro: MatchIntro) {
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = MatchIntroScrimAlpha)),
+        contentAlignment = Alignment.Center,
+    ) {
+        val isCountdownNumber = intro is MatchIntro.Countdown && intro.value > 0
+        Text(
+            text = matchIntroText(intro),
+            style = if (isCountdownNumber) {
+                MaterialTheme.typography.displayLarge
+            } else {
+                MaterialTheme.typography.headlineMedium
+            },
+            color = if (intro is MatchIntro.WaitingForPlayers) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(24.dp),
+        )
+    }
+}
+
+/** Texto de la introducción de la partida resuelto desde `strings.xml`. */
+@Composable
+private fun matchIntroText(intro: MatchIntro): String = when (intro) {
+    MatchIntro.WaitingForPlayers -> stringResource(Res.string.online_waiting_opponent)
+    is MatchIntro.Countdown ->
+        if (intro.value > 0) intro.value.toString() else stringResource(Res.string.match_starting)
+}
+
 @Composable
 private fun PlayerPanelRow(
     players: List<Player>,
@@ -333,12 +429,11 @@ private fun PlayerPanel(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        color = playerColor(player.id.value),
         contentColor = QuoridorTheme.boardColors.pawnLabel,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(4 .dp),
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(4.dp))
             .turnShimmer(active = isActive),
     ) {
         Row(
@@ -357,6 +452,7 @@ private fun PlayerPanel(
                         else -> stringResource(Res.string.player_name, player.id.value + 1)
                     },
                     style = MaterialTheme.typography.titleMedium,
+                    color = playerColor(player.id.value)
                 )
                 if (isThinking) {
                     CircularProgressIndicator(
@@ -380,7 +476,7 @@ private fun PlayerPanel(
                         modifier = Modifier
                             .size(width = 6.dp, height = WallReserveHeight)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(QuoridorTheme.boardColors.wallReserve),
+                            .background(playerColor(player.id.value)),
                     )
                 }
             }
@@ -471,6 +567,53 @@ private fun GameContentOnlinePreview() {
             onEvent = {},
             onBack = {},
         )
+    }
+}
+
+@Preview
+@Composable
+private fun GameContentWaitingPreview() {
+    QuoridorTheme {
+        GameContent(
+            state = GameUiState(
+                gameState = QuoridorRules.startGame(GameConfig(playerCount = 2)),
+                playerNames = listOf("Ana"),
+                localPlayerId = PlayerId(0),
+                matchIntro = MatchIntro.WaitingForPlayers,
+            ),
+            onEvent = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchIntroWaitingOverlayPreview() {
+    QuoridorTheme {
+        Box(modifier = Modifier.size(240.dp)) {
+            MatchIntroOverlay(intro = MatchIntro.WaitingForPlayers)
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun MatchIntroCountdownOverlayPreview() {
+    QuoridorTheme {
+        Box(modifier = Modifier.size(240.dp)) {
+            MatchIntroOverlay(intro = MatchIntro.Countdown(value = 3))
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun MatchIntroStartingOverlayPreview() {
+    QuoridorTheme {
+        Box(modifier = Modifier.size(240.dp)) {
+            MatchIntroOverlay(intro = MatchIntro.Countdown(value = 0))
+        }
     }
 }
 

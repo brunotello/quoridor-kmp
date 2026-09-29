@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,13 +31,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.btello.quoridor.domain.online.SeriesFormat
 import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.online.OnlineErrorText
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.OnlineStepScaffold
+import com.btello.quoridor.presentation.online.seriesFormatLabel
+import com.btello.quoridor.presentation.online.timeControlLabel
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
+import quoridor.app.shared.generated.resources.competitive_config_series
+import quoridor.app.shared.generated.resources.competitive_config_timer
+import quoridor.app.shared.generated.resources.competitive_format_label
+import quoridor.app.shared.generated.resources.competitive_timer_label
 import quoridor.app.shared.generated.resources.online_cancel
 import quoridor.app.shared.generated.resources.online_copy_code
 import quoridor.app.shared.generated.resources.online_create_match
@@ -65,7 +73,11 @@ internal fun CreateMatchOnlineScreen(
             }
         }
     }
-    CreateMatchOnlineContent(state = viewModel.uiState, onEvent = viewModel::onEvent, onBack = onBack)
+    CreateMatchOnlineContent(
+        state = viewModel.uiState,
+        onEvent = viewModel::onEvent,
+        onBack = onBack
+    )
 }
 
 @Composable
@@ -80,6 +92,8 @@ private fun CreateMatchOnlineContent(
                 code = state.hostedCode.orEmpty(),
                 joinedCount = state.joinedCount,
                 playerCount = state.playerCount,
+                format = state.format,
+                timeControlMinutes = state.timeControlMinutes,
                 onCancel = { onEvent(CreateMatchOnlineEvent.Cancel) },
             )
         } else {
@@ -87,22 +101,29 @@ private fun CreateMatchOnlineContent(
                 selected = state.playerCount,
                 onSelect = { onEvent(CreateMatchOnlineEvent.PlayerCountChanged(it)) },
             )
+            FormatSelector(
+                selected = state.format,
+                onSelect = { onEvent(CreateMatchOnlineEvent.FormatChanged(it)) },
+            )
+            TimerSelector(
+                selected = state.timeControlMinutes,
+                onSelect = { onEvent(CreateMatchOnlineEvent.TimeControlChanged(it)) },
+            )
             VisibilityToggle(
                 isPublic = state.isPublic,
                 onToggle = { onEvent(CreateMatchOnlineEvent.VisibilityChanged(it)) },
             )
-            Button(
-                onClick = { onEvent(CreateMatchOnlineEvent.CreateMatch) },
-                enabled = state.canCreate,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.phase == CreateMatchOnlinePhase.Creating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
+
+            if (state.phase == CreateMatchOnlinePhase.Creating) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Button(
+                    onClick = { onEvent(CreateMatchOnlineEvent.CreateMatch) },
+                    enabled = state.canCreate,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(
                         text = stringResource(Res.string.online_create_match),
                         style = MaterialTheme.typography.titleMedium,
@@ -199,10 +220,74 @@ private fun VisibilityToggle(
 }
 
 @Composable
+private fun FormatSelector(
+    selected: SeriesFormat,
+    onSelect: (SeriesFormat) -> Unit,
+) {
+    OptionChipSection(label = stringResource(Res.string.competitive_format_label)) {
+        SeriesFormat.entries.forEach { format ->
+            FilterChip(
+                selected = selected == format,
+                onClick = { onSelect(format) },
+                label = {
+                    Text(
+                        text = seriesFormatLabel(format),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TimerSelector(
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
+) {
+    OptionChipSection(label = stringResource(Res.string.competitive_timer_label)) {
+        TIME_CONTROL_OPTIONS.forEach { minutes ->
+            FilterChip(
+                selected = selected == minutes,
+                onClick = { onSelect(minutes) },
+                label = {
+                    Text(
+                        text = timeControlLabel(minutes),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun OptionChipSection(
+    label: String,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun WaitingSection(
     code: String,
     joinedCount: Int,
     playerCount: Int,
+    format: SeriesFormat,
+    timeControlMinutes: Int?,
     onCancel: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -234,6 +319,7 @@ private fun WaitingSection(
                 )
             }
         }
+        CompetitiveConfigSummary(format = format, timeControlMinutes = timeControlMinutes)
         Text(
             text = stringResource(Res.string.online_waiting_opponent),
             style = MaterialTheme.typography.bodyMedium,
@@ -252,6 +338,36 @@ private fun WaitingSection(
                 style = MaterialTheme.typography.titleMedium,
             )
         }
+    }
+}
+
+/** Resumen de la configuración competitiva (serie y temporizador) de la sala. */
+@Composable
+internal fun CompetitiveConfigSummary(
+    format: SeriesFormat,
+    timeControlMinutes: Int?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.competitive_config_series, seriesFormatLabel(format)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(
+                Res.string.competitive_config_timer,
+                timeControlLabel(timeControlMinutes)
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

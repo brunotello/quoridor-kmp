@@ -29,6 +29,7 @@ interface OnlineGameRepository {
         hostName: String,
         appVersion: String,
         isPublic: Boolean = false,
+        competitive: CompetitiveConfig = CompetitiveConfig(),
     ): MatchId
 
     /**
@@ -53,11 +54,20 @@ interface OnlineGameRepository {
     fun observeMatch(id: MatchId): Flow<OnlineMatch>
 
     /**
-     * Publica un [newState] ya validado localmente. [expectedVersion] es la nueva
+     * Publica un [newState] ya validado localmente junto con el marcador
+     * competitivo [competitive] (serie y relojes). [expectedVersion] es la nueva
      * versión (monotónica); la implementación debe rechazar la escritura si otra
-     * más reciente ya fue aplicada, para evitar sobrescribir jugadas ajenas.
+     * más reciente ya fue aplicada, para evitar sobrescribir jugadas ajenas. La
+     * sala pasa a [MatchStatus.FINISHED] sólo cuando el juego terminó **y** la
+     * serie quedó decidida (en series de varios juegos, un juego terminado no
+     * cierra la sala).
      */
-    suspend fun submitMove(id: MatchId, newState: GameState, expectedVersion: Long): Result<Unit>
+    suspend fun submitMove(
+        id: MatchId,
+        newState: GameState,
+        competitive: CompetitiveState,
+        expectedVersion: Long,
+    ): Result<Unit>
 
     /** Marca al [slot] local como ausente (abandono / salida de la partida). */
     suspend fun leaveMatch(id: MatchId, slot: PlayerSlot)
