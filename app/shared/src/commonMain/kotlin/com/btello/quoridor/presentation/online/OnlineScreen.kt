@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.navigation.AppBackHandler
 import com.btello.quoridor.presentation.navigation.NavAnimatedContent
+import com.btello.quoridor.presentation.navigation.ScopedViewModelStoreOwner
 import com.btello.quoridor.presentation.online.create.CreateMatchOnlineScreen
 import com.btello.quoridor.presentation.online.find.FindMatchesOnlineScreen
 import com.btello.quoridor.presentation.online.join.JoinMatchOnlineScreen
@@ -44,20 +45,26 @@ internal fun OnlineScreen(
                 onBack = onBack,
             )
 
-            OnlineDestination.Create -> CreateMatchOnlineScreen(
-                onStartGame = onStartGame,
-                onBack = backToMenu,
-            )
+            OnlineDestination.Create -> ScopedViewModelStoreOwner {
+                CreateMatchOnlineScreen(
+                    onStartGame = onStartGame,
+                    onBack = backToMenu,
+                )
+            }
 
-            OnlineDestination.Join -> JoinMatchOnlineScreen(
-                onStartGame = onStartGame,
-                onBack = backToMenu,
-            )
+            OnlineDestination.Join -> ScopedViewModelStoreOwner {
+                JoinMatchOnlineScreen(
+                    onStartGame = onStartGame,
+                    onBack = backToMenu,
+                )
+            }
 
-            OnlineDestination.Find -> FindMatchesOnlineScreen(
-                onStartGame = onStartGame,
-                onBack = backToMenu,
-            )
+            OnlineDestination.Find -> ScopedViewModelStoreOwner {
+                FindMatchesOnlineScreen(
+                    onStartGame = onStartGame,
+                    onBack = backToMenu,
+                )
+            }
         }
     }
 }
