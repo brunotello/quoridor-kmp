@@ -35,24 +35,7 @@ internal class MainViewModel : ViewModel() {
         is MainEvent.SelectMode -> when {
             !event.mode.enabled -> null
             event.mode.requiresLobby -> MainSideEffect.NavigateToOnlineLobby
-            event.mode.configurableAi -> MainSideEffect.NavigateToPlayerSetup(event.mode)
-            event.mode.requiresDifficulty ->
-                MainSideEffect.NavigateToDifficulty(event.mode, event.mode.aiCount)
-
-            else -> MainSideEffect.NavigateToGame(event.mode.toGameSetup())
+            else -> MainSideEffect.NavigateToLocalSetup(event.mode)
         }
-
-        is MainEvent.SelectPlayerSetup -> if (event.option.requiresDifficulty) {
-            MainSideEffect.NavigateToDifficulty(event.mode, event.option.aiCount)
-        } else {
-            MainSideEffect.NavigateToGame(event.mode.toGameSetup(aiCount = event.option.aiCount))
-        }
-
-        is MainEvent.SelectDifficulty -> MainSideEffect.NavigateToGame(
-            event.mode.toGameSetup(
-                aiCount = event.aiCount,
-                difficulty = event.option.difficulty,
-            ),
-        )
     }
 }
