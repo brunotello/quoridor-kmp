@@ -62,16 +62,10 @@
     <string name="game_mode_online_description">Juega con 2 o 4 personas en otros dispositivos. Crea una sala o únete con un código.</string>
     <string name="coming_soon">Próximamente</string>
 
-    <!-- Configuración de 4 jugadores -->
-    <string name="player_setup_headline">¿Cuántos rivales controla la IA?</string>
-    <string name="player_setup_humans_title">Todos humanos</string>
-    <string name="player_setup_humans_description">Los 4 jugadores comparten el dispositivo y juegan por turnos.</string>
-    <string name="player_setup_one_ai_title">1 rival IA</string>
-    <string name="player_setup_one_ai_description">Tú y otros 2 humanos contra 1 jugador IA.</string>
-    <string name="player_setup_two_ai_title">2 rivales IA</string>
-    <string name="player_setup_two_ai_description">Tú y otro humano contra 2 jugadores IA.</string>
-    <string name="player_setup_three_ai_title">3 rivales IA</string>
-    <string name="player_setup_three_ai_description">Tú solo contra 3 jugadores IA.</string>
+    <!-- Configuración de partida local -->
+    <string name="match_setup_title">Configurar partida</string>
+    <string name="match_setup_difficulty_label">Dificultad</string>
+    <string name="match_setup_start">Comenzar</string>
 
 
     <!-- Emojis (language-neutral) -->
@@ -79,11 +73,8 @@
     <string name="game_mode_pvai_emoji">🤖</string>
     <string name="game_mode_4p_emoji">👨‍👩‍👧‍👦</string>
     <string name="game_mode_online_emoji">🌐</string>
-    <string name="difficulty_star_emoji">⭐</string>
 
     <!-- Dificultad IA -->
-    <string name="difficulty_overline">SELECCIONA DIFICULTAD</string>
-    <string name="difficulty_headline">¿Qué tan fuerte juega la IA?</string>
     <string name="difficulty_back">Volver</string>
     <string name="difficulty_easy">Fácil</string>
     <string name="difficulty_easy_description">Perfecto para dar tus primeros pasos.</string>
