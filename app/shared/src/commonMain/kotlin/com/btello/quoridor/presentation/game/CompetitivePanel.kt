@@ -19,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.online.SeriesFormat
-import com.btello.quoridor.presentation.online.formatClock
 import com.btello.quoridor.presentation.online.seriesFormatLabel
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import com.btello.quoridor.presentation.theme.playerColor
@@ -29,9 +28,9 @@ import quoridor.app.shared.generated.resources.competitive_series_wins
 import quoridor.app.shared.generated.resources.player_name
 
 /**
- * Sección superior de una partida competitiva online: muestra el marcador de la
- * serie (victorias de cada jugador) y el reloj estilo ajedrez de cada uno. Se
- * ubica sobre el indicador de turno y se oculta al hacer zoom en el tablero.
+ * Sección superior de una partida competitiva online: muestra las rondas y el
+ * marcador (victorias de cada jugador). Se ubica sobre el indicador de turno; el
+ * temporizador por turno se muestra debajo de ese indicador.
  */
 @Composable
 internal fun CompetitivePanel(
@@ -72,7 +71,6 @@ internal fun CompetitivePanel(
                             wins = competitive.wins.getOrNull(index) ?: 0,
                             gamesToWin = competitive.gamesToWin,
                             showWins = competitive.format != SeriesFormat.SINGLE,
-                            clockMillis = competitive.clocksMillis?.getOrNull(index),
                             isLocal = competitive.localPlayerId?.value == index,
                             modifier = Modifier.weight(1f),
                         )
@@ -93,7 +91,6 @@ private fun CompetitivePlayerStat(
     wins: Int,
     gamesToWin: Int,
     showWins: Boolean,
-    clockMillis: Long?,
     isLocal: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -116,13 +113,6 @@ private fun CompetitivePlayerStat(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (clockMillis != null) {
-            Text(
-                text = formatClock(clockMillis),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
     }
 }
 
@@ -135,7 +125,7 @@ private fun CompetitivePanelSeriesPreview() {
                 format = SeriesFormat.FIRST_TO_3,
                 wins = listOf(1, 0),
                 gamesToWin = 3,
-                clocksMillis = listOf(184_000L, 297_500L),
+                turnRemainingMillis = 27_000L,
                 localPlayerId = PlayerId(0),
             ),
             playerNames = listOf("Ana", "Beto"),
@@ -169,7 +159,7 @@ private fun CompetitivePanelTimerOnlyPreview() {
                 format = SeriesFormat.SINGLE,
                 wins = listOf(0, 0),
                 gamesToWin = 1,
-                clocksMillis = listOf(59_000L, 12_000L),
+                turnRemainingMillis = 12_000L,
                 localPlayerId = PlayerId(1),
             ),
             playerNames = listOf("Ana", "Beto"),

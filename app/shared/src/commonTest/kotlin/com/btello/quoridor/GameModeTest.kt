@@ -88,7 +88,7 @@ class GameModeTest {
 
     @Test
     fun exposesEveryModeInDeclarationOrder() {
-        assertEquals(listOf(VERSUS_AI, LOCAL_1V1, ONLINE, FOUR_PLAYERS), GameMode.entries)
+        assertEquals(listOf(VERSUS_AI, LOCAL_1V1, FOUR_PLAYERS, ONLINE), GameMode.entries)
     }
 
     @Test

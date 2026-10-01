@@ -9,7 +9,6 @@ package com.btello.quoridor.presentation.game
 internal sealed interface GameFeedback {
     data object NoWallsRemaining : GameFeedback
     data object NoLegalWalls : GameFeedback
-    data object InvalidWall : GameFeedback
     data object InvalidMove : GameFeedback
     data object GameOver : GameFeedback
     data object AiThinking : GameFeedback

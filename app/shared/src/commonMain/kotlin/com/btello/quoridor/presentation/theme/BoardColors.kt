@@ -17,6 +17,7 @@ internal data class QuoridorBoardColors(
     val cellActive: Color,
     val wallPlaced: Color,
     val wallLegal: Color,
+    val wallPreview: Color,
     val pawnLabel: Color,
     val wallReserve: Color,
     val players: List<Color>,
@@ -29,6 +30,7 @@ internal val DefaultBoardColors: QuoridorBoardColors = QuoridorBoardColors(
     cellActive = blue_800,
     wallPlaced = gray_500,
     wallLegal = cyan_0,
+    wallPreview = gray_300,
     pawnLabel = gray_0,
     wallReserve = gray_900,
     players = listOf(
@@ -46,6 +48,7 @@ internal val LightBoardColors: QuoridorBoardColors = QuoridorBoardColors(
     cellActive = blue_300,
     wallPlaced = blue_600,
     wallLegal = cyan_0,
+    wallPreview = gray_300,
     pawnLabel = gray_0,
     wallReserve = gray_700,
     players = listOf(

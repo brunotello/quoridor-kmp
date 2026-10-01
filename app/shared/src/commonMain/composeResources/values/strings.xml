@@ -21,10 +21,11 @@
     <string name="game_leave_dismiss">Cancelar</string>
     <string name="player_name">Jugador %1$d</string>
     <string name="ai_player_name">IA</string>
+    <string name="player_walls_count">(%1$d)</string>
+    <string name="game_difficulty_label">Dificultad: %1$s</string>
     <string name="pawn_label">%1$d</string>
     <string name="feedback_no_walls_remaining">No quedan muros disponibles.</string>
     <string name="feedback_no_legal_walls">No hay ubicaciones legales para colocar muros.</string>
-    <string name="feedback_invalid_wall">Ese muro no es válido.</string>
     <string name="feedback_invalid_move">Jugada inválida</string>
 
     <!-- Bottom navigation -->
@@ -71,6 +72,7 @@
     <string name="player_setup_two_ai_description">Tú y otro humano contra 2 jugadores IA.</string>
     <string name="player_setup_three_ai_title">3 rivales IA</string>
     <string name="player_setup_three_ai_description">Tú solo contra 3 jugadores IA.</string>
+
 
     <!-- Emojis (language-neutral) -->
     <string name="game_mode_pvp_emoji">👥</string>
@@ -120,8 +122,9 @@
     <string name="online_your_turn">Tu turno</string>
     <string name="online_opponent_left">Un jugador abandonó la partida.</string>
     <string name="match_starting">¡Comienza el juego!</string>
-    <string name="board_zoom_hint">Pellizca con dos dedos en el tablero para hacer zoom</string>
-    <string name="board_wall_hint">Toca los muros del panel de tu jugador para colocar uno</string>
+    <string name="wall_drag_hint">Arrastra un muro hasta el tablero para colocarlo</string>
+    <string name="wall_place_horizontal">Horizontal</string>
+    <string name="wall_place_vertical">Vertical</string>
     <string name="online_cancel">Cancelar</string>
     <string name="online_error_not_found">No se encontró una sala con ese código.</string>
     <string name="online_error_not_joinable">Esa sala ya no está disponible.</string>
@@ -131,22 +134,23 @@
     <string name="online_error_join_timeout">No se pudo unir a la partida. Inténtalo nuevamente.</string>
 
     <!-- Modo competitivo online -->
-    <string name="competitive_format_label">Modo de la serie</string>
-    <string name="competitive_format_single">1 juego</string>
-    <string name="competitive_format_first_to_3">Primero a 3 ganadas</string>
-    <string name="competitive_format_first_to_5">Primero a 5 ganadas</string>
-    <string name="competitive_timer_label">Temporizador</string>
+    <string name="competitive_format_label">Rondas</string>
+    <string name="competitive_format_single">1 ronda</string>
+    <string name="competitive_format_first_to_3">3 rondas</string>
+    <string name="competitive_format_first_to_5">5 rondas</string>
+    <string name="competitive_timer_label">Tiempo por turno</string>
     <string name="competitive_timer_off">Sin límite</string>
-    <string name="competitive_timer_minutes">%1$d min</string>
+    <string name="competitive_timer_seconds">%1$d s</string>
     <string name="competitive_series_score">%1$d - %2$d</string>
     <string name="competitive_series_wins">%1$d/%2$d</string>
-    <string name="competitive_series_game_over">Fin del juego</string>
-    <string name="competitive_series_continue">Siguiente juego</string>
+    <string name="competitive_series_game_over">Fin de la ronda</string>
+    <string name="competitive_series_continue">Siguiente ronda</string>
+    <string name="competitive_round_winner">Jugador %1$d ganó la ronda</string>
     <string name="competitive_series_waiting">Esperando a que el rival continúe…</string>
-    <string name="competitive_series_won">¡Ganaste la serie!</string>
-    <string name="competitive_series_lost">Perdiste la serie</string>
-    <string name="competitive_config_series">Serie: %1$s</string>
-    <string name="competitive_config_timer">Reloj: %1$s</string>
+    <string name="competitive_series_won">¡Ganaste la partida!</string>
+    <string name="competitive_series_lost">Perdiste la partida</string>
+    <string name="competitive_config_series">Rondas: %1$s</string>
+    <string name="competitive_config_timer">Tiempo por turno: %1$s</string>
 
     <!-- Reglas -->
     <string name="rules_title">Reglas del juego</string>

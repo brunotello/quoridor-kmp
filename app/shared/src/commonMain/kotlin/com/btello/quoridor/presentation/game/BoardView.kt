@@ -1,11 +1,9 @@
 package com.btello.quoridor.presentation.game
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -26,18 +24,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -49,13 +43,14 @@ import com.btello.quoridor.domain.model.GoalSide.BOTTOM
 import com.btello.quoridor.domain.model.GoalSide.LEFT
 import com.btello.quoridor.domain.model.GoalSide.RIGHT
 import com.btello.quoridor.domain.model.GoalSide.TOP
+import com.btello.quoridor.domain.model.Move
 import com.btello.quoridor.domain.model.Player
 import com.btello.quoridor.domain.model.Wall
+import com.btello.quoridor.domain.model.WallOrientation
 import com.btello.quoridor.domain.rules.QuoridorRules
+import com.btello.quoridor.presentation.game.WallPlacement.BoardMetrics
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import com.btello.quoridor.presentation.theme.playerColor
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.pawn_label
@@ -66,13 +61,13 @@ private const val LEGAL_WALL_ALPHA = 0.35f
 internal fun BoardView(
     state: GameState,
     legalTargets: Set<Cell>,
-    legalWalls: Set<Wall>,
     onActivePawnClick: () -> Unit,
     onCellClick: (Cell) -> Unit,
-    onWallClick: (Wall) -> Unit,
-    onZoomedChange: (Boolean) -> Unit = {},
+    previewWall: Wall? = null,
+    highlightedWalls: Set<Wall> = emptySet(),
+    onMetricsChanged: (BoardMetrics) -> Unit = {},
 ) {
-    val grid = BoardGrid(state, legalTargets, legalWalls)
+    val grid = BoardGrid(state, legalTargets, highlightedWalls)
     val gap = 8.dp
     val boardPadding = 4.dp
     val boardSize = grid.boardSize
@@ -89,46 +84,24 @@ internal fun BoardView(
         val contentSize = maxWidth
         val cellSize = (contentSize - gap * (boardSize - 1)) / boardSize
         val step = cellSize + gap
-        val pawnSize = cellSize * 0.7f
 
-        val sizePx = with(LocalDensity.current) { contentSize.toPx() }
-        val sizePxState = rememberUpdatedState(sizePx)
-        val scale = remember { Animatable(BoardZoom.MIN_SCALE) }
-        val offsetX = remember { Animatable(0f) }
-        val offsetY = remember { Animatable(0f) }
-        val scope = rememberCoroutineScope()
-
-        LaunchedEffect(state.board.walls, state.players.map { it.position }) {
-            launch { scale.animateTo(BoardZoom.MIN_SCALE, animationSpec = tween(durationMillis = 300)) }
-            launch { offsetX.animateTo(0f, animationSpec = tween(durationMillis = 300)) }
-            launch { offsetY.animateTo(0f, animationSpec = tween(durationMillis = 300)) }
-        }
-
-        LaunchedEffect(scale) {
-            snapshotFlow { BoardZoom.isZoomed(scale.value) }
-                .distinctUntilChanged()
-                .collect(onZoomedChange)
-        }
+        val gapPx = with(LocalDensity.current) { gap.toPx() }
+        val onMetrics = rememberUpdatedState(onMetricsChanged)
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        val sizePxNow = sizePxState.value
-                        val newScale = BoardZoom.nextScale(scale.value, zoom)
-                        val newX = BoardZoom.clampTranslation(offsetX.value + pan.x, newScale, sizePxNow)
-                        val newY = BoardZoom.clampTranslation(offsetY.value + pan.y, newScale, sizePxNow)
-                        scope.launch { scale.snapTo(newScale) }
-                        scope.launch { offsetX.snapTo(newX) }
-                        scope.launch { offsetY.snapTo(newY) }
-                    }
-                }
-                .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                    translationX = offsetX.value
-                    translationY = offsetY.value
+                .onGloballyPositioned { coordinates ->
+                    val bounds = coordinates.boundsInRoot()
+                    onMetrics.value(
+                        BoardMetrics(
+                            left = bounds.left,
+                            top = bounds.top,
+                            sizePx = bounds.width,
+                            gapPx = gapPx,
+                            boardSize = boardSize,
+                        ),
+                    )
                 },
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -150,24 +123,24 @@ internal fun BoardView(
                                     onActivePawnClick = onActivePawnClick,
                                     onCellClick = onCellClick,
                                 )
-                                is WallSlot -> WallBox(
-                                    modifier = boxModifier,
-                                    slot = slot,
-                                    onWallClick = onWallClick,
+                                is WallSlot -> Box(
+                                    modifier = boxModifier.background(
+                                        grooveColor(slot.isCovered, slot.isHighlighted),
+                                    ),
                                 )
                                 is IntersectionSlot -> Box(
                                     modifier = boxModifier.background(
-                                        when {
-                                            slot.isCovered -> boardColors.wallPlaced
-                                            slot.isLegal -> boardColors.wallLegal.copy(alpha = LEGAL_WALL_ALPHA)
-                                            else -> boardColors.background
-                                        },
+                                        grooveColor(slot.isCovered, slot.isHighlighted),
                                     ),
                                 )
                             }
                         }
                     }
                 }
+            }
+
+            previewWall?.let { wall ->
+                WallPreview(wall = wall, step = step, cellSize = cellSize, gap = gap)
             }
 
             state.players.forEach { player ->
@@ -179,12 +152,57 @@ internal fun BoardView(
                     player = player,
                     step = step,
                     cellSize = cellSize,
-                    pawnSize = pawnSize,
+                    pawnSize = cellSize * 0.7f,
                 )
             }
         }
     }
 }
+
+/** Color de una ranura/intersección: muro colocado, posición legal resaltada o fondo. */
+@Composable
+private fun grooveColor(isCovered: Boolean, isHighlighted: Boolean): Color {
+    val boardColors = QuoridorTheme.boardColors
+    return when {
+        isCovered -> boardColors.wallPlaced
+        isHighlighted -> boardColors.wallLegal.copy(alpha = LEGAL_WALL_ALPHA)
+        else -> boardColors.background
+    }
+}
+
+/** Vista previa (gris claro) del muro que se colocará al soltar el dedo. */
+@Composable
+private fun WallPreview(
+    wall: Wall,
+    step: Dp,
+    cellSize: Dp,
+    gap: Dp,
+) {
+    val length = cellSize * 2 + gap
+    val bounds = when (wall.orientation) {
+        WallOrientation.HORIZONTAL -> WallBounds(
+            x = step * wall.col,
+            y = step * wall.row + cellSize,
+            width = length,
+            height = gap,
+        )
+        WallOrientation.VERTICAL -> WallBounds(
+            x = step * wall.col + cellSize,
+            y = step * wall.row,
+            width = gap,
+            height = length,
+        )
+    }
+    Box(
+        modifier = Modifier
+            .offset(x = bounds.x, y = bounds.y)
+            .size(width = bounds.width, height = bounds.height)
+            .clip(RoundedCornerShape(2.dp))
+            .background(QuoridorTheme.boardColors.wallPreview),
+    )
+}
+
+private data class WallBounds(val x: Dp, val y: Dp, val width: Dp, val height: Dp)
 
 @Composable
 private fun GoalIndicator(player: Player) {
@@ -275,28 +293,6 @@ private fun CellBox(
     }
 }
 
-@Composable
-private fun WallBox(
-    modifier: Modifier,
-    slot: WallSlot,
-    onWallClick: (Wall) -> Unit,
-) {
-    val boardColors = QuoridorTheme.boardColors
-    Box(
-        modifier = modifier
-            .background(
-                when {
-                    slot.isCovered -> boardColors.wallPlaced
-                    slot.isLegal -> boardColors.wallLegal.copy(alpha = LEGAL_WALL_ALPHA)
-                    else -> boardColors.background
-                },
-            )
-            .clickable(enabled = slot.isLegal && slot.wall != null) {
-                slot.wall?.let(onWallClick)
-            },
-    )
-}
-
 @Preview
 @Composable
 private fun BoardViewPreview() {
@@ -305,10 +301,27 @@ private fun BoardViewPreview() {
         BoardView(
             state = state,
             legalTargets = emptySet(),
-            legalWalls = emptySet(),
             onActivePawnClick = {},
             onCellClick = {},
-            onWallClick = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun BoardViewWallPreview() {
+    QuoridorTheme {
+        val state = QuoridorRules.startGame(GameConfig(playerCount = 2))
+        BoardView(
+            state = state,
+            legalTargets = emptySet(),
+            onActivePawnClick = {},
+            onCellClick = {},
+            previewWall = Wall(3, 3, WallOrientation.HORIZONTAL),
+            highlightedWalls = QuoridorRules.getLegalMoves(state)
+                .filterIsInstance<Move.PlaceWall>()
+                .map { it.wall }
+                .filterTo(mutableSetOf()) { it.orientation == WallOrientation.HORIZONTAL },
         )
     }
 }

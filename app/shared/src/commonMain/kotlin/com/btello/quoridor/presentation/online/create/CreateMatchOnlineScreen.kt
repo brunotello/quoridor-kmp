@@ -1,19 +1,14 @@
 package com.btello.quoridor.presentation.online.create
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -36,19 +30,20 @@ import com.btello.quoridor.presentation.game.GameSetup
 import com.btello.quoridor.presentation.online.OnlineErrorText
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.OnlineStepScaffold
+import com.btello.quoridor.presentation.online.OptionSectionHeader
+import com.btello.quoridor.presentation.online.PlayerCountChips
+import com.btello.quoridor.presentation.online.SeriesFormatChips
+import com.btello.quoridor.presentation.online.TurnTimeChips
 import com.btello.quoridor.presentation.online.seriesFormatLabel
-import com.btello.quoridor.presentation.online.timeControlLabel
+import com.btello.quoridor.presentation.online.turnTimeLabel
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.competitive_config_series
 import quoridor.app.shared.generated.resources.competitive_config_timer
-import quoridor.app.shared.generated.resources.competitive_format_label
-import quoridor.app.shared.generated.resources.competitive_timer_label
 import quoridor.app.shared.generated.resources.online_cancel
 import quoridor.app.shared.generated.resources.online_copy_code
 import quoridor.app.shared.generated.resources.online_create_match
-import quoridor.app.shared.generated.resources.online_player_count
 import quoridor.app.shared.generated.resources.online_public_description
 import quoridor.app.shared.generated.resources.online_public_label
 import quoridor.app.shared.generated.resources.online_share_code
@@ -93,21 +88,22 @@ private fun CreateMatchOnlineContent(
                 joinedCount = state.joinedCount,
                 playerCount = state.playerCount,
                 format = state.format,
-                timeControlMinutes = state.timeControlMinutes,
+                turnTimeSeconds = state.turnTimeSeconds,
                 onCancel = { onEvent(CreateMatchOnlineEvent.Cancel) },
             )
         } else {
-            PlayerCountSelector(
+            PlayerCountChips(
+                options = PLAYER_COUNT_OPTIONS,
                 selected = state.playerCount,
                 onSelect = { onEvent(CreateMatchOnlineEvent.PlayerCountChanged(it)) },
             )
-            FormatSelector(
+            SeriesFormatChips(
                 selected = state.format,
                 onSelect = { onEvent(CreateMatchOnlineEvent.FormatChanged(it)) },
             )
-            TimerSelector(
-                selected = state.timeControlMinutes,
-                onSelect = { onEvent(CreateMatchOnlineEvent.TimeControlChanged(it)) },
+            TurnTimeChips(
+                selected = state.turnTimeSeconds,
+                onSelect = { onEvent(CreateMatchOnlineEvent.TurnTimeChanged(it)) },
             )
             VisibilityToggle(
                 isPublic = state.isPublic,
@@ -136,62 +132,6 @@ private fun CreateMatchOnlineContent(
 }
 
 @Composable
-private fun PlayerCountSelector(
-    selected: Int,
-    onSelect: (Int) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = stringResource(Res.string.online_player_count),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            for (count in MIN_PLAYERS..MAX_PLAYERS step (MAX_PLAYERS - MIN_PLAYERS)) {
-                PlayerCountOption(
-                    count = count,
-                    selected = selected == count,
-                    onSelect = { onSelect(count) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerCountOption(
-    count: Int,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(72.dp)
-            .clip(CircleShape)
-            .background(
-                if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            )
-            .clickable(onClick = onSelect),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-    }
-}
-
-@Composable
 private fun VisibilityToggle(
     isPublic: Boolean,
     onToggle: (Boolean) -> Unit,
@@ -201,10 +141,13 @@ private fun VisibilityToggle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(Res.string.online_public_label),
-                style = MaterialTheme.typography.titleMedium,
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OptionSectionHeader(
+                label = stringResource(Res.string.online_public_label),
+                icon = Icons.Filled.Public,
             )
             Text(
                 text = stringResource(Res.string.online_public_description),
@@ -220,74 +163,12 @@ private fun VisibilityToggle(
 }
 
 @Composable
-private fun FormatSelector(
-    selected: SeriesFormat,
-    onSelect: (SeriesFormat) -> Unit,
-) {
-    OptionChipSection(label = stringResource(Res.string.competitive_format_label)) {
-        SeriesFormat.entries.forEach { format ->
-            FilterChip(
-                selected = selected == format,
-                onClick = { onSelect(format) },
-                label = {
-                    Text(
-                        text = seriesFormatLabel(format),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimerSelector(
-    selected: Int?,
-    onSelect: (Int?) -> Unit,
-) {
-    OptionChipSection(label = stringResource(Res.string.competitive_timer_label)) {
-        TIME_CONTROL_OPTIONS.forEach { minutes ->
-            FilterChip(
-                selected = selected == minutes,
-                onClick = { onSelect(minutes) },
-                label = {
-                    Text(
-                        text = timeControlLabel(minutes),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun OptionChipSection(
-    label: String,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            content()
-        }
-    }
-}
-
-@Composable
 private fun WaitingSection(
     code: String,
     joinedCount: Int,
     playerCount: Int,
     format: SeriesFormat,
-    timeControlMinutes: Int?,
+    turnTimeSeconds: Int?,
     onCancel: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -319,7 +200,7 @@ private fun WaitingSection(
                 )
             }
         }
-        CompetitiveConfigSummary(format = format, timeControlMinutes = timeControlMinutes)
+        CompetitiveConfigSummary(format = format, turnTimeSeconds = turnTimeSeconds)
         Text(
             text = stringResource(Res.string.online_waiting_opponent),
             style = MaterialTheme.typography.bodyMedium,
@@ -341,11 +222,11 @@ private fun WaitingSection(
     }
 }
 
-/** Resumen de la configuración competitiva (serie y temporizador) de la sala. */
+/** Resumen de la configuración competitiva (rondas y tiempo por turno) de la sala. */
 @Composable
 internal fun CompetitiveConfigSummary(
     format: SeriesFormat,
-    timeControlMinutes: Int?,
+    turnTimeSeconds: Int?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -362,7 +243,7 @@ internal fun CompetitiveConfigSummary(
         Text(
             text = stringResource(
                 Res.string.competitive_config_timer,
-                timeControlLabel(timeControlMinutes)
+                turnTimeLabel(turnTimeSeconds)
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

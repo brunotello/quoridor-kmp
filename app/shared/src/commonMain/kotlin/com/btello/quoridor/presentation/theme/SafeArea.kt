@@ -20,3 +20,16 @@ fun Modifier.safeAreaTopPadding(): Modifier =
     windowInsetsPadding(
         WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
     )
+
+/**
+ * Como [safeAreaTopPadding] pero incluyendo también el borde inferior (home
+ * indicator / barra de gestos). Para pantallas a pantalla completa sin
+ * `Scaffold` con bottom navigation, como la partida.
+ */
+@Composable
+fun Modifier.safeAreaVerticalPadding(): Modifier =
+    windowInsetsPadding(
+        WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom,
+        ),
+    )

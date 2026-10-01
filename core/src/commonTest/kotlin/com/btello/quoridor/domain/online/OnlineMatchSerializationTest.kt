@@ -103,11 +103,10 @@ class OnlineMatchSerializationTest {
             competitive = CompetitiveState(
                 config = CompetitiveConfig(
                     format = SeriesFormat.FIRST_TO_3,
-                    timeControlSeconds = 300,
+                    turnTimeSeconds = 45,
                 ),
                 wins = listOf(1, 0),
                 gameIndex = 1,
-                remainingMillis = listOf(184_000L, 297_500L),
             ),
         )
 

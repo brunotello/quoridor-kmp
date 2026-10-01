@@ -86,6 +86,18 @@ object QuoridorRules {
         state.status == GameStatus.GAME_OVER || state.players.any { hasReachedGoal(state, it) }
 
     /**
+     * El jugador en turno pierde su oportunidad de jugar (p. ej. por agotar el
+     * tiempo del turno): no mueve ni coloca muro y el turno pasa al siguiente
+     * jugador. Si la partida ya terminó, devuelve el estado sin cambios.
+     */
+    fun skipTurn(state: GameState): GameState {
+        if (isGameOver(state) || state.players.isEmpty()) return state
+        val currentIndex = state.players.indexOfFirst { it.id == state.turn.playerId }
+        val nextIndex = (currentIndex + 1) % state.players.size
+        return state.copy(turn = Turn(state.players[nextIndex].id))
+    }
+
+    /**
      * Quita al jugador [playerId] de la partida (abandono). El resto continúa
      * jugando: si era su turno, este pasa al siguiente jugador. Si tras la salida
      * queda un único jugador, este gana y la partida termina ([GameStatus.GAME_OVER]).

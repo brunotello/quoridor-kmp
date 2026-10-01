@@ -5,6 +5,7 @@ import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.GameStatus
 import com.btello.quoridor.domain.model.Move
 import com.btello.quoridor.domain.model.PlayerId
+import com.btello.quoridor.domain.model.Turn
 import com.btello.quoridor.domain.model.Wall
 import com.btello.quoridor.domain.model.WallOrientation
 import com.btello.quoridor.domain.rules.DomainError
@@ -214,6 +215,44 @@ class QuoridorGameRulesTest {
 
         assertTrue(result.isSuccessful)
         assertEquals(GameStatus.GAME_OVER, result.state!!.status)
+    }
+
+    @Test
+    fun `skipping a turn passes it to the next player without changing the board`() {
+        val state = QuoridorRules.startGame(2)
+
+        val result = QuoridorRules.skipTurn(state)
+
+        assertEquals(PlayerId(1), result.turn.playerId)
+        assertEquals(state.players, result.players)
+        assertEquals(state.board, result.board)
+        assertEquals(GameStatus.IN_PROGRESS, result.status)
+    }
+
+    @Test
+    fun `skipping the last player's turn wraps to the first`() {
+        val state = QuoridorRules.startGame(4).copy(turn = Turn(PlayerId(3)))
+
+        val result = QuoridorRules.skipTurn(state)
+
+        assertEquals(PlayerId(0), result.turn.playerId)
+    }
+
+    @Test
+    fun `skipping a turn after a player left follows the remaining order`() {
+        val state = QuoridorRules.withPlayerRemoved(QuoridorRules.startGame(4), PlayerId(2))
+            .copy(turn = Turn(PlayerId(1)))
+
+        val result = QuoridorRules.skipTurn(state)
+
+        assertEquals(PlayerId(3), result.turn.playerId)
+    }
+
+    @Test
+    fun `skipping a turn on a finished game keeps the state`() {
+        val state = QuoridorRules.startGame(2).copy(status = GameStatus.GAME_OVER, winner = PlayerId(0))
+
+        assertEquals(state, QuoridorRules.skipTurn(state))
     }
 
     @Test

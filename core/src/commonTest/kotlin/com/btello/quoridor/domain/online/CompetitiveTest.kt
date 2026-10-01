@@ -27,18 +27,18 @@ class CompetitiveTest {
         assertFalse(series.hasTimer)
         assertTrue(series.isCompetitive)
 
-        val timed = CompetitiveConfig(timeControlSeconds = 300)
+        val timed = CompetitiveConfig(turnTimeSeconds = 30)
         assertTrue(timed.hasTimer)
         assertTrue(timed.isCompetitive)
     }
 
     @Test
-    fun configRejectsNonPositiveTimeControl() {
+    fun configRejectsNonPositiveTurnTime() {
         assertFailsWith<IllegalArgumentException> {
-            CompetitiveConfig(timeControlSeconds = 0)
+            CompetitiveConfig(turnTimeSeconds = 0)
         }
         assertFailsWith<IllegalArgumentException> {
-            CompetitiveConfig(timeControlSeconds = -5)
+            CompetitiveConfig(turnTimeSeconds = -5)
         }
     }
 
@@ -60,23 +60,50 @@ class CompetitiveTest {
     }
 
     @Test
-    fun initialWithoutTimerHasEmptyClocks() {
+    fun initialStartsFirstRoundWithoutWins() {
         val state = CompetitiveState.initial(
-            playerCount = 2,
-            config = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3),
+            playerCount = 4,
+            config = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3, turnTimeSeconds = 45),
         )
-        assertEquals(listOf(0, 0), state.wins)
+        assertEquals(listOf(0, 0, 0, 0), state.wins)
         assertEquals(0, state.gameIndex)
-        assertTrue(state.remainingMillis.isEmpty())
         assertFalse(state.isSeriesOver)
+        assertNull(state.seriesWinner)
     }
 
     @Test
-    fun initialWithTimerSeedsEachPlayerClock() {
-        val state = CompetitiveState.initial(
-            playerCount = 2,
-            config = CompetitiveConfig(timeControlSeconds = 300),
-        )
-        assertEquals(listOf(300_000L, 300_000L), state.remainingMillis)
+    fun remainingTurnMillisCountsDownFromTurnTime() {
+        val config = CompetitiveConfig(turnTimeSeconds = 30)
+        assertEquals(30_000L, config.remainingTurnMillis(0L))
+        assertEquals(12_500L, config.remainingTurnMillis(17_500L))
+        assertEquals(0L, config.remainingTurnMillis(30_000L))
+    }
+
+    @Test
+    fun remainingTurnMillisNeverGoesNegative() {
+        assertEquals(0L, CompetitiveConfig(turnTimeSeconds = 45).remainingTurnMillis(90_000L))
+    }
+
+    @Test
+    fun remainingTurnMillisIsNullWithoutTimer() {
+        assertNull(CompetitiveConfig().remainingTurnMillis(10_000L))
+    }
+
+    @Test
+    fun turnExpiresOnlyWhenTimeRunsOut() {
+        val config = CompetitiveConfig(turnTimeSeconds = 60)
+        assertFalse(config.isTurnExpired(59_999L))
+        assertTrue(config.isTurnExpired(60_000L))
+        assertTrue(config.isTurnExpired(75_000L))
+    }
+
+    @Test
+    fun turnNeverExpiresWithoutTimer() {
+        assertFalse(CompetitiveConfig().isTurnExpired(Long.MAX_VALUE))
+    }
+
+    @Test
+    fun turnTimeOptionsAre30_45And60Seconds() {
+        assertEquals(listOf(30, 45, 60), CompetitiveConfig.TURN_TIME_OPTIONS)
     }
 }

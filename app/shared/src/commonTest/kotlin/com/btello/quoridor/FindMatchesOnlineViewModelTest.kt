@@ -120,7 +120,7 @@ class FindMatchesOnlineViewModelTest {
             "Beto",
             AppConfig.VERSION,
             isPublic = true,
-            competitive = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3, timeControlSeconds = 300),
+            competitive = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3, turnTimeSeconds = 60),
         )
         val vm = viewModel(repo, this)
 
@@ -128,7 +128,7 @@ class FindMatchesOnlineViewModelTest {
 
         val open = vm.uiState.openMatches.single()
         assertEquals(SeriesFormat.FIRST_TO_3, open.format)
-        assertEquals(300, open.timeControlSeconds)
+        assertEquals(60, open.turnTimeSeconds)
         coroutineContext.cancelChildren()
     }
 

@@ -50,3 +50,8 @@ internal enum class DifficultyOption(
         difficulty = AiDifficulty.EXPERT,
     ),
 }
+
+/** Título de la [AiDifficulty] en `strings.xml`, para mostrar el nivel de la IA en la partida. */
+internal fun AiDifficulty.labelRes(): StringResource =
+    DifficultyOption.entries.first { it.difficulty == this }.titleRes
+

@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
-/** Frecuencia de refresco del temporizador estilo ajedrez (ms). */
+/** Frecuencia de refresco del temporizador por turno (ms). */
 private const val CLOCK_TICK_MILLIS = 250L
 
 /** Valor inicial de la cuenta atrás previa al inicio del juego (5, 4, …, 0). */
@@ -31,11 +31,11 @@ private const val COUNTDOWN_STEP_MILLIS = 1000L
  * propias, gestiona el abandono y expone el estado online (nombres, indicador de
  * turno, feedback de espera/abandono).
  *
- * También orquesta el **modo competitivo**: la serie al mejor de N (varios juegos
- * hasta que alguien alcance las victorias necesarias) y el temporizador estilo
- * ajedrez (cada jugador gasta su reloj en su turno; si se agota, pierde el juego
- * en curso). Ambos son opcionales y viajan en [CompetitiveState] dentro de la
- * sala sincronizada.
+ * También orquesta el **modo competitivo**: las rondas (varias rondas hasta que
+ * alguien alcance las victorias necesarias) y el temporizador por turno (si el
+ * jugador en turno agota el tiempo, no pierde la ronda: pierde el turno y este
+ * pasa al siguiente rival). Ambos son opcionales y viajan en [CompetitiveState]
+ * dentro de la sala sincronizada.
  *
  * Requiere una [GameSetup.online]. El [onlineRepository] puede ser `null` en
  * plataformas sin backend online, en cuyo caso no se sincroniza.
@@ -74,13 +74,11 @@ internal class OnlineGameViewModel(
     /**
      * Presencia por asiento sincronizada: `presence[i]` es `false` cuando el
      * jugador del asiento `i` abandonó/se desconectó. Se usa para decidir quién
-     * sigue en la serie: un jugador que pierde un juego por tiempo sigue presente
-     * (`true`) y debe seguir viéndose en el marcador, a diferencia de quien
-     * abandona.
+     * sigue en la partida y debe seguir viéndose en el marcador.
      */
     private var onlinePresence: List<Boolean>? = emptyList()
 
-    /** Estado competitivo (serie y relojes) sincronizado; por defecto sin efecto. */
+    /** Estado competitivo (rondas y temporizador) sincronizado; por defecto sin efecto. */
     private var competitiveState: CompetitiveState? = CompetitiveState()
 
     /**
@@ -92,7 +90,7 @@ internal class OnlineGameViewModel(
     private val competitive: CompetitiveState
         get() = competitiveState ?: CompetitiveState()
 
-    /** Marca del inicio del turno actual, base para descontar el reloj del jugador activo. */
+    /** Marca del inicio del turno actual, base para la cuenta atrás del temporizador por turno. */
     private var turnStartMark: TimeMark? = null
 
     private var onlineJob: Job? = null
@@ -177,7 +175,6 @@ internal class OnlineGameViewModel(
     }
 
     override fun onHumanMoveApplied() {
-        competitiveState = competitive.copy(remainingMillis = frozenLocalClock())
         if (QuoridorRules.isGameOver(gameState)) {
             finishGameAndPublish()
         } else {
@@ -209,10 +206,7 @@ internal class OnlineGameViewModel(
         // Sólo el ganador del último juego inicia el siguiente; el rival espera la sincronización.
         if (gameState.winner != localPlayerId) return
         gameState = QuoridorRules.startGame(gameConfig)
-        competitiveState = competitive.copy(
-            gameIndex = competitive.gameIndex + 1,
-            remainingMillis = initialClocks(),
-        )
+        competitiveState = competitive.copy(gameIndex = competitive.gameIndex + 1)
         feedback = null
         onlineVersion += 1
         publish()
@@ -243,7 +237,6 @@ internal class OnlineGameViewModel(
         stopTicking()
         if (!QuoridorRules.isGameOver(gameState)) {
             gameState = QuoridorRules.withPlayerRemoved(gameState, localPlayerId)
-            competitiveState = competitive.copy(remainingMillis = frozenLocalClock())
             gameState.winner?.let { winner ->
                 competitiveState = competitive.copy(wins = seriesForfeitedTo(winner))
                 feedback = GameFeedback.GameOver
@@ -257,7 +250,7 @@ internal class OnlineGameViewModel(
     /** Online no registra estadísticas locales. */
     override fun recordGame() = Unit
 
-    // --- Temporizador estilo ajedrez ---
+    // --- Temporizador por turno ---
 
     private fun startTicking() {
         if (!competitive.config.hasTimer) return
@@ -276,55 +269,36 @@ internal class OnlineGameViewModel(
         tickJob = null
     }
 
-    /** Si es mi turno y mi reloj llegó a cero, pierdo el juego en curso. */
+    /** Si es mi turno y se agotó su tiempo, lo pierdo y pasa al siguiente rival. */
     private fun checkLocalTimeout() {
-        if (!competitive.config.hasTimer) return
-        if (onlineStatus != MatchStatus.IN_PROGRESS) return
-        if (countdownValue != null) return
-        if (QuoridorRules.isGameOver(gameState)) return
+        if (!isTurnTimerRunning()) return
         if (gameState.turn.playerId != localPlayerId) return
-        val mine = remainingNow().getOrNull(localPlayerId.value) ?: return
-        if (mine <= 0L) handleLocalTimeout()
+        if (competitive.config.isTurnExpired(turnElapsedMillis())) handleLocalTimeout()
     }
 
     private fun handleLocalTimeout() {
-        val zeroed = competitive.remainingMillis.toMutableList()
-        if (localPlayerId.value < zeroed.size) zeroed[localPlayerId.value] = 0L
-        gameState = QuoridorRules.withPlayerRemoved(gameState, localPlayerId)
-        competitiveState = competitive.copy(remainingMillis = zeroed)
-        finishGameAndPublish()
+        gameState = QuoridorRules.skipTurn(gameState)
+        feedback = null
+        onlineVersion += 1
+        publish()
+        resetTurnMark()
         refresh()
     }
 
-    /** Tiempos restantes "ahora", descontando lo transcurrido del turno del jugador activo. */
-    private fun remainingNow(): List<Long> {
-        val base = competitive.remainingMillis
-        if (base.isEmpty()) return base
-        val running = onlineStatus == MatchStatus.IN_PROGRESS &&
+    /** `true` mientras el turno en curso consume tiempo (sala en juego, sin cuenta atrás ni fin). */
+    private fun isTurnTimerRunning(): Boolean =
+        competitive.config.hasTimer &&
+            onlineStatus == MatchStatus.IN_PROGRESS &&
             countdownValue == null &&
             !QuoridorRules.isGameOver(gameState)
-        if (!running) return base
-        val active = gameState.turn.playerId.value
-        val elapsed = turnStartMark?.elapsedNow()?.inWholeMilliseconds ?: 0L
-        return base.mapIndexed { index, millis ->
-            if (index == active) (millis - elapsed).coerceAtLeast(0L) else millis
-        }
-    }
 
-    /** Relojes con el tiempo consumido por el jugador local ya descontado. */
-    private fun frozenLocalClock(): List<Long> {
-        val base = competitive.remainingMillis
-        if (base.isEmpty()) return base
-        val elapsed = turnStartMark?.elapsedNow()?.inWholeMilliseconds ?: 0L
-        return base.mapIndexed { index, millis ->
-            if (index == localPlayerId.value) (millis - elapsed).coerceAtLeast(0L) else millis
-        }
-    }
+    private fun turnElapsedMillis(): Long = turnStartMark?.elapsedNow()?.inWholeMilliseconds ?: 0L
 
-    private fun initialClocks(): List<Long> =
-        competitive.config.timeControlSeconds
-            ?.let { seconds -> List(gameConfig.playerCount) { seconds * 1000L } }
-            ?: emptyList()
+    /** Tiempo restante del turno en curso; completo mientras el temporizador no corre. */
+    private fun turnRemainingMillis(): Long? {
+        val elapsed = if (isTurnTimerRunning()) turnElapsedMillis() else 0L
+        return competitive.config.remainingTurnMillis(elapsed)
+    }
 
     private fun incrementedWins(winner: PlayerId): List<Int> =
         competitive.wins.toMutableList().also {
@@ -383,17 +357,16 @@ internal class OnlineGameViewModel(
             format = competitive.config.format,
             wins = competitive.wins,
             gamesToWin = competitive.config.format.gamesToWin,
-            clocksMillis = if (competitive.config.hasTimer) remainingNow() else null,
+            turnRemainingMillis = turnRemainingMillis(),
             localPlayerId = localPlayerId,
             presentPlayerIds = presentPlayerIds(),
         )
     }
 
     /**
-     * Asientos que siguen en la serie: los que no abandonaron según [onlinePresence].
-     * Un jugador que perdió el juego en curso por tiempo sigue presente, por lo que
-     * continúa viéndose en el marcador; sólo se ocultan quienes abandonaron. Si aún
-     * no hay datos de presencia, se cae en los jugadores presentes en el tablero.
+     * Asientos que siguen en la partida: los que no abandonaron según [onlinePresence];
+     * sólo se ocultan del marcador quienes abandonaron. Si aún no hay datos de
+     * presencia, se cae en los jugadores presentes en el tablero.
      */
     private fun presentPlayerIds(): Set<Int> {
         val presence = onlinePresence.orEmpty()

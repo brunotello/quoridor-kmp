@@ -7,14 +7,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.btello.quoridor.domain.ai.AiStrategy
 import com.btello.quoridor.domain.model.Cell
+import com.btello.quoridor.domain.model.GameConfig
 import com.btello.quoridor.domain.model.GameState
+import com.btello.quoridor.domain.model.GameStatus
 import com.btello.quoridor.domain.model.Move
 import com.btello.quoridor.domain.model.PlayerId
 import com.btello.quoridor.domain.model.Wall
+import com.btello.quoridor.domain.online.CompetitiveConfig
 import com.btello.quoridor.domain.rules.QuoridorRules
 import com.btello.quoridor.domain.stats.GameRecord
 import com.btello.quoridor.domain.stats.StatisticsRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -24,9 +28,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 private const val DEFAULT_AI_MOVE_DELAY_MS = 450L
+
+/** Frecuencia de refresco del temporizador por turno local (ms). */
+private const val LOCAL_CLOCK_TICK_MILLIS = 250L
 
 /**
  * ViewModel base de la partida (modo local: 1 contra 1 en el mismo dispositivo o
@@ -50,6 +58,7 @@ internal open class GameViewModel(
     private val autoRunAi: Boolean = true,
     private val statisticsRepository: StatisticsRepository? = null,
     private val timeSource: TimeSource = TimeSource.Monotonic,
+    clockScope: CoroutineScope? = null,
 ) : ViewModel() {
 
     /**
@@ -67,6 +76,24 @@ internal open class GameViewModel(
     protected val aiPlayers: Set<PlayerId> = setup.aiPlayers
     private val difficulty = setup.difficulty
     private val startMark = timeSource.markNow()
+    private val gameConfig: GameConfig = setup.config
+
+    /** Configuración competitiva local (rondas y temporizador); sin efecto por defecto. */
+    private val competitiveConfig: CompetitiveConfig = setup.competitive
+
+    /** Victorias locales por jugador (indexado por [PlayerId.value]) en una serie local. */
+    private var localWins: List<Int> = List(setup.config.playerCount) { 0 }
+
+    /** Evita contar dos veces la victoria de un mismo juego de la serie. */
+    private var gameWinCounted: Boolean = false
+
+    /** Marca de inicio del turno en curso, base de la cuenta atrás del temporizador local. */
+    private var turnStartMark: TimeMark = timeSource.markNow()
+
+    /** Ámbito de corrutinas del temporizador por turno local; inyectable para tests. */
+    private val clockScope: CoroutineScope = clockScope ?: viewModelScope
+
+    private var tickJob: Job? = null
 
     /** Cantidad de jugadas por jugador, para registrar estadísticas al finalizar. */
     private val moveCounts = mutableMapOf<PlayerId, Int>()
@@ -77,8 +104,6 @@ internal open class GameViewModel(
     private var gameRecorded = false
 
     protected var gameState: GameState = QuoridorRules.startGame(setup.config)
-    private var showingWallTargets: Boolean = false
-    private var legalWallTargets: List<Wall> = emptyList()
     protected var feedback: GameFeedback? = null
     private var isAiThinking: Boolean = false
     protected var aiJob: Job? = null
@@ -89,12 +114,15 @@ internal open class GameViewModel(
     protected val _sideEffects = Channel<GameSideEffect>(Channel.BUFFERED)
     val sideEffects: Flow<GameSideEffect> = _sideEffects.receiveAsFlow()
 
+    init {
+        startLocalTicking()
+    }
+
     fun onEvent(event: GameEvent) {
         when (event) {
             GameEvent.ActivePawnClick -> if (!isInputBlocked()) onActivePawnClick()
-            GameEvent.WallReserveClick -> if (!isInputBlocked()) onWallReserveClick()
             is GameEvent.CellClick -> if (!isInputBlocked()) onCellClick(event.cell)
-            is GameEvent.WallClick -> if (!isInputBlocked()) onWallClick(event.wall)
+            is GameEvent.WallDrop -> if (!isInputBlocked()) onWallDrop(event.wall)
             GameEvent.LeaveMatch -> onLeaveMatch()
             GameEvent.NewGame -> onNewGame()
             GameEvent.ContinueSeries -> onContinueSeries()
@@ -104,11 +132,28 @@ internal open class GameViewModel(
     /** Volver al menú para iniciar otra partida. */
     protected open fun onNewGame() {
         aiJob?.cancel()
+        stopLocalTicking()
         _sideEffects.trySend(GameSideEffect.NavigateToMenu)
     }
 
-    /** Avanzar al siguiente juego de una serie competitiva. Sin efecto en local. */
-    protected open fun onContinueSeries() = onNewGame()
+    /**
+     * Avanzar al siguiente juego de una serie competitiva local: reinicia el
+     * tablero conservando el marcador y relanza el temporizador y, si arranca un
+     * jugador IA, su turno. Si la serie ya terminó, vuelve al menú.
+     */
+    protected open fun onContinueSeries() {
+        if (seriesOver()) {
+            onNewGame()
+            return
+        }
+        gameState = QuoridorRules.startGame(gameConfig)
+        feedback = null
+        gameWinCounted = false
+        resetTurnMark()
+        startLocalTicking()
+        refresh()
+        startAiTurn()
+    }
 
     /**
      * El jugador abandona la partida. En local sólo se sale al menú sin
@@ -116,30 +161,29 @@ internal open class GameViewModel(
      */
     protected open fun onLeaveMatch() {
         aiJob?.cancel()
+        stopLocalTicking()
         _sideEffects.trySend(GameSideEffect.NavigateToMenu)
     }
 
     private fun onActivePawnClick() {
-        showingWallTargets = false
-        legalWallTargets = emptyList()
+        feedback = null
         refresh()
     }
 
-    private fun onWallReserveClick() {
+    private fun onWallDrop(wall: Wall) {
         val activePlayer = gameState.players.first { it.id == gameState.turn.playerId }
         if (activePlayer.wallsRemaining <= 0) {
             feedback = GameFeedback.NoWallsRemaining
             refresh()
             return
         }
-        legalWallTargets = QuoridorRules.getLegalMoves(gameState)
+        val wallMove = QuoridorRules.getLegalMoves(gameState)
             .filterIsInstance<Move.PlaceWall>()
-            .map { it.wall }
-        showingWallTargets = legalWallTargets.isNotEmpty()
-        if (!showingWallTargets) {
-            feedback = GameFeedback.NoLegalWalls
-        }
-        refresh()
+            .firstOrNull { it.wall == wall }
+        // Un muro inválido se descarta en silencio: no se muestra aviso para no desplazar el tablero.
+        if (wallMove == null) return
+        applyMove(wallMove)
+        onHumanMoveApplied()
     }
 
     private fun onCellClick(cell: Cell) {
@@ -150,20 +194,6 @@ internal open class GameViewModel(
             applyMove(legalPawnMove)
             onHumanMoveApplied()
         }
-    }
-
-    private fun onWallClick(wall: Wall) {
-        if (!showingWallTargets) return
-        val wallMove = QuoridorRules.getLegalMoves(gameState)
-            .filterIsInstance<Move.PlaceWall>()
-            .firstOrNull { it.wall == wall }
-        if (wallMove == null) {
-            feedback = GameFeedback.InvalidWall
-            refresh()
-            return
-        }
-        applyMove(wallMove)
-        onHumanMoveApplied()
     }
 
     private fun applyMove(move: Move) {
@@ -181,12 +211,26 @@ internal open class GameViewModel(
             wallCounts[move.playerId] = (wallCounts[move.playerId] ?: 0) + 1
         }
 
-        showingWallTargets = false
-        legalWallTargets = emptyList()
         val gameOver = QuoridorRules.isGameOver(gameState)
         feedback = if (gameOver) GameFeedback.GameOver else null
-        if (gameOver) recordGame()
+        if (gameOver) {
+            recordLocalWin()
+            recordGame()
+            stopLocalTicking()
+        } else {
+            resetTurnMark()
+        }
         refresh()
+    }
+
+    /** Suma (una única vez por juego) la victoria del ganador al marcador local de la serie. */
+    private fun recordLocalWin() {
+        if (gameWinCounted) return
+        val winner = gameState.winner ?: return
+        gameWinCounted = true
+        localWins = localWins.toMutableList().also {
+            if (winner.value < it.size) it[winner.value] += 1
+        }
     }
 
     /**
@@ -259,6 +303,19 @@ internal open class GameViewModel(
         }
     }
 
+    /**
+     * Finaliza el juego actual declarando [winner] y aplica el conteo de la serie
+     * local, replicando la rama de fin de juego de [applyMove] sin tener que jugar
+     * una partida completa. Uso exclusivo en tests deterministas.
+     */
+    internal fun endGameForTest(winner: PlayerId) {
+        gameState = gameState.copy(status = GameStatus.GAME_OVER, winner = winner)
+        feedback = GameFeedback.GameOver
+        recordLocalWin()
+        stopLocalTicking()
+        refresh()
+    }
+
     protected fun refresh() {
         uiState = buildUiState()
     }
@@ -267,23 +324,22 @@ internal open class GameViewModel(
         val isAbandoned = isAbandoned()
         val isGameOver = QuoridorRules.isGameOver(gameState) || isAbandoned
         val humanTurn = !isGameOver && gameState.turn.playerId !in aiPlayers && !isRemoteInputBlocked()
-        val legalTargets = if (humanTurn) {
-            QuoridorRules.getLegalMoves(gameState)
-                .filterIsInstance<Move.PawnMove>()
-                .map { it.to }
-                .toSet()
-        } else {
-            emptySet()
-        }
+        val legalMoves = if (humanTurn) QuoridorRules.getLegalMoves(gameState) else emptyList()
+        val legalTargets = legalMoves.filterIsInstance<Move.PawnMove>().map { it.to }.toSet()
+        val legalWalls = legalMoves.filterIsInstance<Move.PlaceWall>().map { it.wall }.toSet()
+        val activePlayer = gameState.players.firstOrNull { it.id == gameState.turn.playerId }
+        val canPlaceWall = humanTurn && (activePlayer?.wallsRemaining ?: 0) > 0
         return GameUiState(
             gameState = gameState,
             legalTargets = legalTargets,
-            legalWalls = if (humanTurn) legalWallTargets.toSet() else emptySet(),
+            legalWalls = legalWalls,
+            canPlaceWall = canPlaceWall,
             feedback = feedback ?: extraFeedback(isGameOver),
             isGameOver = isGameOver,
             isAbandoned = isAbandoned,
             isAiThinking = isAiThinking,
             aiPlayers = aiPlayers,
+            difficulty = difficulty,
             winnerNumber = gameState.winner?.value?.plus(1),
             localResult = localResult(isAbandoned),
             playerNames = playerNames(),
@@ -324,17 +380,100 @@ internal open class GameViewModel(
     /** Identificador del jugador de este dispositivo; `null` en local. */
     protected open fun localPlayerIdOrNull(): PlayerId? = null
 
-    /** Indicador de turno mostrado sobre el tablero; `null` en local. */
-    protected open fun turnBanner(isGameOver: Boolean): TurnBanner? = null
-
-    /** Información del modo competitivo (serie/reloj); `null` fuera del online competitivo. */
-    protected open fun competitiveUi(): CompetitiveUi? = null
+    /**
+     * Indicador de turno mostrado sobre el tablero. En local señala de quién es el
+     * turno: "Tu turno" cuando le toca al único jugador humano ([localHumanId]) y
+     * "Turno de Jugador N" en caso contrario. El online lo redefine con el asiento
+     * remoto.
+     */
+    protected open fun turnBanner(isGameOver: Boolean): TurnBanner? {
+        if (isGameOver) return null
+        val turnId = gameState.turn.playerId
+        return if (localHumanId != null && turnId == localHumanId) {
+            TurnBanner.YourTurn
+        } else {
+            TurnBanner.PlayerTurn(playerNumber = turnId.value + 1, playerName = null)
+        }
+    }
 
     /**
-     * `true` cuando el fin del juego actual también cierra la partida (serie
-     * decidida o abandono). En local siempre es `true`: cada juego es la partida.
+     * Información del modo competitivo (rondas y temporizador) de una partida
+     * local; `null` cuando la configuración no activa ninguna opción competitiva.
+     * El online la redefine con el estado sincronizado.
      */
-    protected open fun seriesOver(): Boolean = true
+    protected open fun competitiveUi(): CompetitiveUi? {
+        if (!competitiveConfig.isCompetitive) return null
+        return CompetitiveUi(
+            format = competitiveConfig.format,
+            wins = localWins,
+            gamesToWin = competitiveConfig.format.gamesToWin,
+            turnRemainingMillis = localTurnRemainingMillis(),
+            localPlayerId = localHumanId,
+            presentPlayerIds = gameState.players.map { it.id.value }.toSet(),
+        )
+    }
+
+    /**
+     * `true` cuando el fin del juego actual también cierra la partida. En una
+     * serie local es `true` sólo cuando algún jugador alcanzó las victorias
+     * necesarias; sin modo competitivo cada juego es la partida.
+     */
+    protected open fun seriesOver(): Boolean {
+        if (!competitiveConfig.isCompetitive) return true
+        return localWins.any { it >= competitiveConfig.format.gamesToWin }
+    }
+
+    // --- Temporizador por turno local ---
+
+    private fun startLocalTicking() {
+        if (!competitiveConfig.hasTimer) return
+        if (tickJob?.isActive == true) return
+        tickJob = clockScope.launch {
+            while (isActive) {
+                delay(LOCAL_CLOCK_TICK_MILLIS)
+                checkLocalTimeout()
+                refresh()
+            }
+        }
+    }
+
+    private fun stopLocalTicking() {
+        tickJob?.cancel()
+        tickJob = null
+    }
+
+    /**
+     * Si el turno del jugador humano en curso agotó su tiempo, pierde el turno
+     * (no mueve ni coloca muro) y este pasa al siguiente jugador.
+     */
+    private fun checkLocalTimeout() {
+        if (!isLocalTurnTimerRunning()) return
+        if (competitiveConfig.isTurnExpired(turnStartMark.elapsedNow().inWholeMilliseconds)) {
+            gameState = QuoridorRules.skipTurn(gameState)
+            feedback = null
+            resetTurnMark()
+        }
+    }
+
+    /** `true` mientras el turno en curso de un jugador humano consume tiempo. */
+    private fun isLocalTurnTimerRunning(): Boolean =
+        competitiveConfig.hasTimer &&
+            !QuoridorRules.isGameOver(gameState) &&
+            gameState.turn.playerId !in aiPlayers
+
+    /** Tiempo restante del turno local en curso; completo mientras el reloj no corre. */
+    private fun localTurnRemainingMillis(): Long? {
+        val elapsed = if (isLocalTurnTimerRunning()) {
+            turnStartMark.elapsedNow().inWholeMilliseconds
+        } else {
+            0L
+        }
+        return competitiveConfig.remainingTurnMillis(elapsed)
+    }
+
+    private fun resetTurnMark() {
+        turnStartMark = timeSource.markNow()
+    }
 
     /** Introducción de la partida (espera de jugadores / cuenta atrás); `null` en local. */
     protected open fun matchIntro(): MatchIntro? = null

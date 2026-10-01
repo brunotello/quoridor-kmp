@@ -24,6 +24,7 @@ internal val orange_500 = Color(0xFFFFA94D)
 
 internal val gray_0 = Color(0xFFFFFFFF)
 internal val slate_50 = Color(0xFFEEF4FB)
+internal val gray_300 = Color(0xFFB0B0B0)
 internal val gray_500 = Color(0xFF5C5C5C)
 internal val gray_700 = Color(0xFF3A3A3A)
 internal val gray_900 = Color(0xFF000000)
