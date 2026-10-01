@@ -7,14 +7,13 @@ import quoridor.app.shared.generated.resources.Res
 import quoridor.app.shared.generated.resources.competitive_format_first_to_3
 import quoridor.app.shared.generated.resources.competitive_format_first_to_5
 import quoridor.app.shared.generated.resources.competitive_format_single
-import quoridor.app.shared.generated.resources.competitive_timer_minutes
+import quoridor.app.shared.generated.resources.competitive_timer_seconds
 import quoridor.app.shared.generated.resources.competitive_timer_off
 
-private const val SECONDS_PER_MINUTE = 60
 private const val MILLIS_PER_SECOND = 1000L
 private const val SECONDS_PER_MINUTE_L = 60L
 
-/** Etiqueta legible del formato de serie competitiva. */
+/** Etiqueta legible de la cantidad de rondas competitivas. */
 @Composable
 internal fun seriesFormatLabel(format: SeriesFormat): String = when (format) {
     SeriesFormat.SINGLE -> stringResource(Res.string.competitive_format_single)
@@ -22,19 +21,14 @@ internal fun seriesFormatLabel(format: SeriesFormat): String = when (format) {
     SeriesFormat.FIRST_TO_5 -> stringResource(Res.string.competitive_format_first_to_5)
 }
 
-/** Etiqueta del control de tiempo elegido en minutos (o "sin límite" si es `null`). */
+/** Etiqueta del tiempo por turno en segundos (o "sin límite" si es `null`). */
 @Composable
-internal fun timeControlLabel(minutes: Int?): String =
-    if (minutes == null) {
+internal fun turnTimeLabel(seconds: Int?): String =
+    if (seconds == null) {
         stringResource(Res.string.competitive_timer_off)
     } else {
-        stringResource(Res.string.competitive_timer_minutes, minutes)
+        stringResource(Res.string.competitive_timer_seconds, seconds)
     }
-
-/** Etiqueta del control de tiempo a partir de segundos (o "sin límite" si es `null`). */
-@Composable
-internal fun timeControlSecondsLabel(seconds: Int?): String =
-    timeControlLabel(seconds?.let { it / SECONDS_PER_MINUTE })
 
 /** Formatea un tiempo en milisegundos como `m:ss` (nunca negativo). */
 internal fun formatClock(millis: Long): String {

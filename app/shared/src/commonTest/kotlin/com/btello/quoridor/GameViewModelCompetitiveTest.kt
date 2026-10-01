@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.ExperimentalTime
 import kotlin.time.Duration.Companion.seconds
@@ -129,19 +130,12 @@ class GameViewModelCompetitiveTest {
         scope.cancel()
     }
 
-    @OptIn(ExperimentalTime::class)
-    @Test
-    fun `running out of time loses the game`() = runTest {
-        val repo = FakeOnlineGameRepository()
-        val id = repo.createMatch(
-            config,
-            "Ana",
-            AppConfig.VERSION,
-            competitive = CompetitiveConfig(timeControlSeconds = 5),
-        )
-        repo.simulateJoin(id, "Beto")
-        val timeSource = TestTimeSource()
-        val scope = onlineScope()
+    private fun TestScope.timedViewModel(
+        repo: FakeOnlineGameRepository,
+        timeSource: TestTimeSource,
+        scope: CoroutineScope,
+    ): OnlineGameViewModel {
+        val id = repo.matches.keys.first()
         val vm = OnlineGameViewModel(
             setup = GameSetup(config, online = OnlineSession(id, PlayerSlot.HOST)),
             autoRunAi = false,
@@ -150,17 +144,120 @@ class GameViewModelCompetitiveTest {
             clockTimeSource = timeSource,
         )
         runCurrent()
-        // El reloj no corre durante la cuenta atrás previa al inicio: la dejamos terminar.
+        // El temporizador no corre durante la cuenta atrás previa al inicio: la dejamos terminar.
         advanceTimeBy(6_000)
         runCurrent()
+        return vm
+    }
 
-        timeSource += 6.seconds
+    private suspend fun timedMatch(repo: FakeOnlineGameRepository, turnSeconds: Int) {
+        val id = repo.createMatch(
+            config,
+            "Ana",
+            AppConfig.VERSION,
+            competitive = CompetitiveConfig(turnTimeSeconds = turnSeconds),
+        )
+        repo.simulateJoin(id, "Beto")
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun `running out of turn time passes the turn without losing the game`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        timedMatch(repo, turnSeconds = 30)
+        val timeSource = TestTimeSource()
+        val scope = onlineScope()
+        val vm = timedViewModel(repo, timeSource, scope)
+        val id = repo.matches.keys.first()
+        val before = repo.current(id)
+
+        timeSource += 31.seconds
         advanceTimeBy(300)
         runCurrent()
 
-        assertTrue(vm.uiState.isGameOver)
-        assertEquals(GameResult.LOST, vm.uiState.localResult)
-        assertEquals(listOf(0, 1), repo.current(id).competitive.wins)
+        val after = repo.current(id)
+        assertFalse(vm.uiState.isGameOver)
+        assertEquals(PlayerId(1), after.state.turn.playerId)
+        assertEquals(before.state.players, after.state.players)
+        assertEquals(before.state.board, after.state.board)
+        assertEquals(listOf(0, 0), after.competitive.wins)
+        assertEquals(MatchStatus.IN_PROGRESS, after.status)
+        scope.cancel()
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun `turn time does not expire before the limit`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        timedMatch(repo, turnSeconds = 45)
+        val timeSource = TestTimeSource()
+        val scope = onlineScope()
+        val vm = timedViewModel(repo, timeSource, scope)
+
+        timeSource += 44.seconds
+        advanceTimeBy(300)
+        runCurrent()
+
+        assertEquals(PlayerId(0), vm.uiState.gameState.turn.playerId)
+        assertEquals(1_000L, vm.uiState.competitive?.turnRemainingMillis)
+        scope.cancel()
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun `the turn timer restarts for the next turn`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        timedMatch(repo, turnSeconds = 30)
+        val timeSource = TestTimeSource()
+        val scope = onlineScope()
+        val vm = timedViewModel(repo, timeSource, scope)
+
+        timeSource += 31.seconds
+        advanceTimeBy(300)
+        runCurrent()
+
+        assertEquals(30_000L, vm.uiState.competitive?.turnRemainingMillis)
+        scope.cancel()
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun `the rival's turn timeout is not applied locally`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        timedMatch(repo, turnSeconds = 30)
+        val timeSource = TestTimeSource()
+        val scope = onlineScope()
+        val vm = timedViewModel(repo, timeSource, scope)
+        val id = repo.matches.keys.first()
+        val rivalTurn = QuoridorRules.skipTurn(repo.current(id).state)
+        repo.pushRemoteState(id, rivalTurn, version = 1)
+        runCurrent()
+
+        timeSource += 40.seconds
+        advanceTimeBy(300)
+        runCurrent()
+
+        assertEquals(PlayerId(1), vm.uiState.gameState.turn.playerId)
+        assertEquals(1L, repo.current(id).version)
+        assertEquals(0L, vm.uiState.competitive?.turnRemainingMillis)
+        scope.cancel()
+    }
+
+    @Test
+    fun `without turn timer the competitive ui has no countdown`() = runTest {
+        val repo = FakeOnlineGameRepository()
+        val id = repo.createMatch(
+            config,
+            "Ana",
+            AppConfig.VERSION,
+            competitive = CompetitiveConfig(format = SeriesFormat.FIRST_TO_3),
+        )
+        repo.simulateJoin(id, "Beto")
+        val scope = onlineScope()
+        val vm = hostViewModel(scope, repo)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.competitive?.turnRemainingMillis)
         scope.cancel()
     }
 }

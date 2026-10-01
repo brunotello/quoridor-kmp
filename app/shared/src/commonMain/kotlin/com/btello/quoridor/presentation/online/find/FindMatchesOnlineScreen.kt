@@ -28,7 +28,7 @@ import com.btello.quoridor.presentation.online.OnlineOpenMatch
 import com.btello.quoridor.presentation.online.OnlineSideEffect
 import com.btello.quoridor.presentation.online.OnlineStepScaffold
 import com.btello.quoridor.presentation.online.seriesFormatLabel
-import com.btello.quoridor.presentation.online.timeControlSecondsLabel
+import com.btello.quoridor.presentation.online.turnTimeLabel
 import com.btello.quoridor.presentation.theme.QuoridorTheme
 import org.jetbrains.compose.resources.stringResource
 import quoridor.app.shared.generated.resources.Res
@@ -149,7 +149,7 @@ private fun OpenMatchCard(
             Text(
                 text = stringResource(
                     Res.string.competitive_config_timer,
-                    timeControlSecondsLabel(match.timeControlSeconds),
+                    turnTimeLabel(match.turnTimeSeconds),
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

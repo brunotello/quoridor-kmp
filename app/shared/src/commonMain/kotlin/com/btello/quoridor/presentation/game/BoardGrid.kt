@@ -31,22 +31,25 @@ internal data class WallSlot(
     override val row: Int,
     override val col: Int,
     val orientation: WallOrientation,
-    val wall: Wall?,
     val isCovered: Boolean,
-    val isLegal: Boolean,
+    val isHighlighted: Boolean = false,
 ) : BoardSlot
 
 internal data class IntersectionSlot(
     override val row: Int,
     override val col: Int,
     val isCovered: Boolean,
-    val isLegal: Boolean,
+    val isHighlighted: Boolean = false,
 ) : BoardSlot
 
+/**
+ * [highlightedWalls] son los muros legales a resaltar (p. ej. mientras se arrastra
+ * un muro); cada ranura o intersección que cubran se marca como resaltada.
+ */
 internal class BoardGrid(
     val state: GameState,
     private val legalTargets: Set<Cell>,
-    private val legalWalls: Set<Wall>,
+    private val highlightedWalls: Set<Wall> = emptySet(),
 ) {
     val boardSize: Int = state.board.size
     val gridSize: Int = boardSize * 2 - 1
@@ -65,16 +68,9 @@ internal class BoardGrid(
                 row = row,
                 col = col,
                 isCovered = horizontalCovers(row, col) || verticalCovers(row, col),
-                isLegal = intersectionIsLegal(row, col),
+                isHighlighted = highlightedWalls.any { it.covers(row, col) },
             )
         }
-    }
-
-    private fun intersectionIsLegal(row: Int, col: Int): Boolean {
-        val wr = (row - 1) / 2
-        val wc = (col - 1) / 2
-        return Wall(wr, wc, WallOrientation.VERTICAL) in legalWalls ||
-            Wall(wr, wc, WallOrientation.HORIZONTAL) in legalWalls
     }
 
     private fun buildCellSlot(row: Int, col: Int): CellSlot {
@@ -89,57 +85,33 @@ internal class BoardGrid(
         )
     }
 
-    private fun buildVerticalWallSlot(row: Int, col: Int): WallSlot {
-        val cellRow = row / 2
-        val wc = (col - 1) / 2
-        val topWall = if (cellRow <= boardSize - 2) Wall(cellRow, wc, WallOrientation.VERTICAL) else null
-        val bottomWall = if (cellRow - 1 in 0..boardSize - 2) Wall(cellRow - 1, wc, WallOrientation.VERTICAL) else null
-        val legalWall = when {
-            topWall != null && topWall in legalWalls -> topWall
-            bottomWall != null && bottomWall in legalWalls -> bottomWall
-            else -> null
-        }
-        return WallSlot(
+    private fun buildVerticalWallSlot(row: Int, col: Int): WallSlot =
+        WallSlot(
             row = row,
             col = col,
             orientation = WallOrientation.VERTICAL,
-            wall = legalWall ?: topWall,
             isCovered = verticalCovers(row, col),
-            isLegal = legalWall != null,
+            isHighlighted = highlightedWalls.any { it.covers(row, col) },
         )
-    }
 
-    private fun buildHorizontalWallSlot(row: Int, col: Int): WallSlot {
-        val wr = (row - 1) / 2
-        val cellCol = col / 2
-        val leftWall = if (cellCol <= boardSize - 2) Wall(wr, cellCol, WallOrientation.HORIZONTAL) else null
-        val rightWall = if (cellCol - 1 in 0..boardSize - 2) Wall(wr, cellCol - 1, WallOrientation.HORIZONTAL) else null
-        val legalWall = when {
-            leftWall != null && leftWall in legalWalls -> leftWall
-            rightWall != null && rightWall in legalWalls -> rightWall
-            else -> null
-        }
-        return WallSlot(
+    private fun buildHorizontalWallSlot(row: Int, col: Int): WallSlot =
+        WallSlot(
             row = row,
             col = col,
             orientation = WallOrientation.HORIZONTAL,
-            wall = legalWall ?: leftWall,
             isCovered = horizontalCovers(row, col),
-            isLegal = legalWall != null,
+            isHighlighted = highlightedWalls.any { it.covers(row, col) },
         )
-    }
 
     private fun horizontalCovers(row: Int, col: Int): Boolean =
-        placedWalls.any {
-            it.orientation == WallOrientation.HORIZONTAL &&
-                row == it.row * 2 + 1 &&
-                col in it.col * 2..it.col * 2 + 2
-        }
+        placedWalls.any { it.orientation == WallOrientation.HORIZONTAL && it.covers(row, col) }
 
     private fun verticalCovers(row: Int, col: Int): Boolean =
-        placedWalls.any {
-            it.orientation == WallOrientation.VERTICAL &&
-                col == it.col * 2 + 1 &&
-                row in it.row * 2..it.row * 2 + 2
-        }
+        placedWalls.any { it.orientation == WallOrientation.VERTICAL && it.covers(row, col) }
+}
+
+/** `true` si este muro ocupa el slot ([row], [col]) de la grilla de render. */
+internal fun Wall.covers(row: Int, col: Int): Boolean = when (orientation) {
+    WallOrientation.HORIZONTAL -> row == this.row * 2 + 1 && col in this.col * 2..this.col * 2 + 2
+    WallOrientation.VERTICAL -> col == this.col * 2 + 1 && row in this.row * 2..this.row * 2 + 2
 }

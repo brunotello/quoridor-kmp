@@ -8,9 +8,10 @@ import com.btello.quoridor.domain.model.Wall
  */
 internal sealed interface GameEvent {
     data object ActivePawnClick : GameEvent
-    data object WallReserveClick : GameEvent
     data class CellClick(val cell: Cell) : GameEvent
-    data class WallClick(val wall: Wall) : GameEvent
+
+    /** Se soltó el dedo sobre el tablero para colocar [wall] tras arrastrarlo desde un botón. */
+    data class WallDrop(val wall: Wall) : GameEvent
     data object LeaveMatch : GameEvent
     data object NewGame : GameEvent
 

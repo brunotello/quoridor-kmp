@@ -5,8 +5,8 @@ import com.btello.quoridor.domain.online.SeriesFormat
 
 /**
  * Resumen de una sala pública mostrada en la búsqueda para unirse sin código.
- * Incluye la configuración competitiva ([format] de la serie y [timeControlSeconds]
- * del temporizador, `null` si no hay reloj) para que se vea cómo está armada.
+ * Incluye la configuración competitiva ([format] con las rondas y [turnTimeSeconds]
+ * del temporizador por turno, `null` si no hay temporizador) para que se vea cómo está armada.
  */
 internal data class OnlineOpenMatch(
     val id: MatchId,
@@ -14,5 +14,5 @@ internal data class OnlineOpenMatch(
     val joinedCount: Int,
     val playerCount: Int,
     val format: SeriesFormat = SeriesFormat.SINGLE,
-    val timeControlSeconds: Int? = null,
+    val turnTimeSeconds: Int? = null,
 )

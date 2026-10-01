@@ -19,10 +19,11 @@
     <string name="game_leave_confirm">Leave</string>
     <string name="game_leave_dismiss">Cancel</string>
     <string name="player_name">Player %1$d</string>
+    <string name="player_walls_count">(%1$d)</string>
+    <string name="game_difficulty_label">Difficulty: %1$s</string>
     <string name="pawn_label">%1$d</string>
     <string name="feedback_no_walls_remaining">No walls remaining.</string>
     <string name="feedback_no_legal_walls">There are no legal wall placements.</string>
-    <string name="feedback_invalid_wall">That wall is not valid.</string>
     <string name="feedback_invalid_move">Invalid move</string>
 
     <!-- Bottom navigation -->
@@ -69,6 +70,7 @@
     <string name="player_setup_two_ai_description">You and another human against 2 AI players.</string>
     <string name="player_setup_three_ai_title">3 AI rivals</string>
     <string name="player_setup_three_ai_description">Just you against 3 AI players.</string>
+
 
     <!-- Emojis (language-neutral) -->
     <string name="game_mode_pvp_emoji">👥</string>
@@ -132,8 +134,9 @@
     <string name="online_your_turn">Your turn</string>
     <string name="online_opponent_left">A player left the match.</string>
     <string name="match_starting">The game begins!</string>
-    <string name="board_zoom_hint">Pinch with two fingers in the board to zoom</string>
-    <string name="board_wall_hint">Tap the walls in your player panel to place one</string>
+    <string name="wall_drag_hint">Drag a wall onto the board to place it</string>
+    <string name="wall_place_horizontal">Horizontal</string>
+    <string name="wall_place_vertical">Vertical</string>
     <string name="online_cancel">Cancel</string>
     <string name="online_error_not_found">No room found for that code.</string>
     <string name="online_error_not_joinable">That room is no longer available.</string>
@@ -143,22 +146,23 @@
     <string name="online_error_join_timeout">Couldn't join the match. Please try again.</string>
 
     <!-- Online competitive mode -->
-    <string name="competitive_format_label">Series mode</string>
-    <string name="competitive_format_single">1 game</string>
-    <string name="competitive_format_first_to_3">First to 3 wins</string>
-    <string name="competitive_format_first_to_5">First to 5 wins</string>
-    <string name="competitive_timer_label">Timer</string>
+    <string name="competitive_format_label">Rounds</string>
+    <string name="competitive_format_single">1 round</string>
+    <string name="competitive_format_first_to_3">3 rounds</string>
+    <string name="competitive_format_first_to_5">5 rounds</string>
+    <string name="competitive_timer_label">Time per turn</string>
     <string name="competitive_timer_off">No limit</string>
-    <string name="competitive_timer_minutes">%1$d min</string>
+    <string name="competitive_timer_seconds">%1$d s</string>
     <string name="competitive_series_score">%1$d - %2$d</string>
     <string name="competitive_series_wins">%1$d/%2$d</string>
-    <string name="competitive_series_game_over">Game over</string>
-    <string name="competitive_series_continue">Next game</string>
+    <string name="competitive_series_game_over">Round over</string>
+    <string name="competitive_series_continue">Next round</string>
+    <string name="competitive_round_winner">Player %1$d won the round</string>
     <string name="competitive_series_waiting">Waiting for your rival to continue…</string>
-    <string name="competitive_series_won">You won the series!</string>
-    <string name="competitive_series_lost">You lost the series</string>
-    <string name="competitive_config_series">Series: %1$s</string>
-    <string name="competitive_config_timer">Clock: %1$s</string>
+    <string name="competitive_series_won">You won the match!</string>
+    <string name="competitive_series_lost">You lost the match</string>
+    <string name="competitive_config_series">Rounds: %1$s</string>
+    <string name="competitive_config_timer">Time per turn: %1$s</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

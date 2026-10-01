@@ -186,14 +186,14 @@ class CreateMatchOnlineViewModelTest {
         val vm = viewModel(repo, this)
 
         vm.onEvent(CreateMatchOnlineEvent.FormatChanged(SeriesFormat.FIRST_TO_5))
-        vm.onEvent(CreateMatchOnlineEvent.TimeControlChanged(10))
+        vm.onEvent(CreateMatchOnlineEvent.TurnTimeChanged(45))
         vm.onEvent(CreateMatchOnlineEvent.CreateMatch)
         advanceUntilIdle()
 
         val competitive = repo.current(MatchId(vm.uiState.hostedCode!!)).competitive
         assertEquals(SeriesFormat.FIRST_TO_5, competitive.config.format)
-        assertEquals(600, competitive.config.timeControlSeconds)
-        assertEquals(listOf(600_000L, 600_000L), competitive.remainingMillis)
+        assertEquals(45, competitive.config.turnTimeSeconds)
+        assertEquals(listOf(0, 0), competitive.wins)
         vm.onEvent(CreateMatchOnlineEvent.Cancel)
         advanceUntilIdle()
     }
@@ -208,7 +208,7 @@ class CreateMatchOnlineViewModelTest {
 
         val competitive = repo.current(MatchId(vm.uiState.hostedCode!!)).competitive
         assertEquals(SeriesFormat.SINGLE, competitive.config.format)
-        assertNull(competitive.config.timeControlSeconds)
+        assertNull(competitive.config.turnTimeSeconds)
         assertFalse(competitive.config.isCompetitive)
         vm.onEvent(CreateMatchOnlineEvent.Cancel)
         advanceUntilIdle()

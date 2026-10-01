@@ -6,6 +6,7 @@ import com.btello.quoridor.presentation.main.DifficultyOption.EASY
 import com.btello.quoridor.presentation.main.DifficultyOption.EXPERT
 import com.btello.quoridor.presentation.main.DifficultyOption.HARD
 import com.btello.quoridor.presentation.main.DifficultyOption.MEDIUM
+import com.btello.quoridor.presentation.main.labelRes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -30,5 +31,12 @@ class DifficultyOptionTest {
             AiDifficulty.entries.toSet(),
             DifficultyOption.entries.map { it.difficulty }.toSet(),
         )
+    }
+
+    @Test
+    fun `labelRes maps each difficulty to its option title`() {
+        for (option in DifficultyOption.entries) {
+            assertEquals(option.titleRes, option.difficulty.labelRes())
+        }
     }
 }

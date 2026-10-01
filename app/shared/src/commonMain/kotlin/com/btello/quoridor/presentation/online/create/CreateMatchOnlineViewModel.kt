@@ -69,8 +69,8 @@ internal class CreateMatchOnlineViewModel(
             is CreateMatchOnlineEvent.FormatChanged ->
                 uiState = uiState.copy(format = event.format, error = null)
 
-            is CreateMatchOnlineEvent.TimeControlChanged ->
-                uiState = uiState.copy(timeControlMinutes = event.minutes, error = null)
+            is CreateMatchOnlineEvent.TurnTimeChanged ->
+                uiState = uiState.copy(turnTimeSeconds = event.seconds, error = null)
 
             CreateMatchOnlineEvent.CreateMatch -> createMatch()
             CreateMatchOnlineEvent.Cancel -> cancel()
@@ -88,7 +88,7 @@ internal class CreateMatchOnlineViewModel(
         val isPublic = uiState.isPublic
         val competitive = CompetitiveConfig(
             format = uiState.format,
-            timeControlSeconds = uiState.timeControlMinutes?.let { it * SECONDS_PER_MINUTE },
+            turnTimeSeconds = uiState.turnTimeSeconds,
         )
         uiState = uiState.copy(phase = CreateMatchOnlinePhase.Creating, error = null)
         scope.launch {
